@@ -1,8 +1,8 @@
 'use client'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { FiHome, FiFileText, FiUsers, FiBarChart2, FiSettings, FiLogOut } from 'react-icons/fi'
-import { FaGavel, FaTrashAlt } from 'react-icons/fa'
+import { FiHome, FiFileText, FiBarChart2, FiSettings, FiLogOut } from 'react-icons/fi'
+
 
 export default function AuthLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -24,7 +24,23 @@ export default function AuthLayout({ children }) {
     const fetchUser = async () => {
       const res = await fetch('/api/auth/me')
       if (res.ok) {
-        setUser(await res.json())
+          const data = await res.json();
+  
+        // Redirect based on role
+          if (data.user.role === 'admin') {
+            router.push('/admin');
+          } else if (data.user.role === 'creator') {
+            router.push('/creator/dashboard');
+          } else if (data.user.role === 'legal') {
+            router.push('/legal/dashboard');
+          } else if (data.user.role === 'validator') {
+            router.push('/validator/dashboard');
+          } else if (data.user.role === 'valuation') {
+            router.push('/valuation/dashboard');
+          }
+          else{
+            setUser(data.user);
+          }
       } else {
         router.push('/login')
       }

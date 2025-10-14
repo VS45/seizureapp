@@ -170,20 +170,17 @@ export async function GET(request) {
 
     // Build query based on user role and office
     const office = await Office.findById(user.office);
-    let query = {};
-    if (user.role !== "admin" && user.role !== "validator") {
-      query.officeCode = office.code;
-    }
+
 
     // Get seizures with pagination
-    const seizures = await Seizure.find(query)
+    const seizures = await Seizure.find()
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
 
     // Get total count for pagination
-    const total = await Seizure.countDocuments(query);
+    const total = await Seizure.countDocuments();
 
     return NextResponse.json({
       success: true,
