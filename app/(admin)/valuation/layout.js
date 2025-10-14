@@ -11,10 +11,8 @@ export default function CreatorLayout({ children }) {
     const pathname = usePathname()
 
     const navItems = [
-        { name: 'Dashboard', href: '/creator/dashboard', icon: <FiHome size={20} /> },
-        { name: 'Seizures', href: '/creator/seizures', icon: <FiFileText size={20} /> },
-        { name: 'Charts', href: '/creator/reports/charts', icon: <FiPieChart size={20} /> },
-        { name: 'Create Seizure', href: '/creator/create', icon: <FiFileText size={20} /> },
+        { name: 'Dashboard', href: '/valuation/dashboard', icon: <FiHome size={20} /> },
+        { name: 'Seizures', href: '/valuation/seizures', icon: <FiFileText size={20} /> },
     ]
 
     const fetchUserData = async () => {
@@ -23,7 +21,6 @@ export default function CreatorLayout({ children }) {
             if (!response.ok)  return router.push('/login');
 
             const userData = await response.json();
-            console.log(userData.user)
             setUser(userData.user);
 
             // Check if user is admin - only admins can access admin pages

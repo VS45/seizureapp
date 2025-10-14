@@ -93,10 +93,10 @@ export async function POST(request) {
 
     // Parse request body
     const body = await request.json();
-    const { email, password, name, serviceNo, rank, office, role } = body;
+    const { email, password, name, serviceNo, rank, officeCode, role } = body;
 
     // Validate required fields
-    if (!email || !password || !name || !serviceNo || !rank || !office || !role) {
+    if (!email || !password || !name || !serviceNo || !rank || !officeCode || !role) {
       return NextResponse.json(
         { error: "All fields are required" },
         { status: 400 }
@@ -118,7 +118,7 @@ export async function POST(request) {
         { status: 400 }
       );
     }
-
+  const office = await Office.findOne({ code: officeCode });
     // Create new user
     const newUser = new User({
       email,
@@ -126,7 +126,7 @@ export async function POST(request) {
       name,
       serviceNo: serviceNo.toUpperCase(),
       rank: rank.toUpperCase(),
-      office,
+      office:  office._id,
       role,
       isVerified: true // Admin created users are automatically verified
     });

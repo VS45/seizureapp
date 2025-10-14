@@ -49,6 +49,9 @@ export default function CreateUserModal({ isOpen, onClose, onSubmit }) {
     { value: 'admin', label: 'Admin' },
     { value: 'legal', label: 'Legal' },
     { value: 'user', label: 'User' },
+    { value: 'valuation', label: 'Valuation' },
+    { value: 'dcenforcement', label: 'DC Enforcement' },
+    { value: 'dcrevenue', label: 'DC Revenue' },
     { value: 'armourer', label: 'Armourer' }
   ];
 
@@ -127,7 +130,7 @@ export default function CreateUserModal({ isOpen, onClose, onSubmit }) {
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        office: formData.officeCode, // API expects 'office' field
+        officeCode: formData.officeCode, // API expects 'office' field
         role: formData.role
       });
       onClose();

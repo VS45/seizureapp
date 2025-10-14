@@ -11,6 +11,7 @@ export async function POST(request) {
   try {
     await connectDB();
     const user = await User.findOne({ email });
+    console.log(user);
     
     if (!user) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
@@ -21,6 +22,8 @@ export async function POST(request) {
     }
     
     const isMatch = await user.comparePassword(password);
+    console.log(isMatch);
+    console.log(password);
     if (!isMatch) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }

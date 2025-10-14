@@ -1,4 +1,3 @@
-// app/seizures/[id]/operation/page.js
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -254,7 +253,7 @@ export default function UpdateOperation() {
       });
 
       setTimeout(() => {
-        router.push(`/admin/seizures/${seizureId}`);
+        router.push(`/legal/seizures/${seizureId}`);
       }, 1500);
     } catch (error) {
       setError(error.message || 'Error updating operation');

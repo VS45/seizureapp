@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import User from '@/models/User';
 import connectDB from '@/lib/db';
 import { authenticate } from '@/lib/auth';
+import Office from '@/models/office';
 
 export async function PUT(request, { params }) {
   try {
@@ -25,16 +26,24 @@ export async function PUT(request, { params }) {
 
     // Parse request body
     const body = await request.json();
-    const { name, rank, office, role } = body;
+    const { name, rank, officeCode, role } = body;
+    console.log(body)
+    console.log(id)
 
     // Validate required fields
-    if (!name || !rank || !office || !role) {
+    if (!name || !rank || !officeCode || !role) {
       return NextResponse.json(
         { error: "All fields are required" },
         { status: 400 }
       );
     }
-
+const office=await Office.findOne({code:officeCode});
+    if (!office) {
+      return NextResponse.json(
+        { error: "Office not found with the provided code" },
+        { status: 404 }
+      );
+    }
     // Find user and update
     const user = await User.findByIdAndUpdate(
       id,
@@ -62,7 +71,7 @@ export async function PUT(request, { params }) {
       message: "User updated successfully"
     });
   } catch (error) {
-    console.error("Failed to update user:", error);
+    console.log("Failed to update user:", error);
     return NextResponse.json(
       { error: "Failed to update user", details: error.message },
       { status: 500 }

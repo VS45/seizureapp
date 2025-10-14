@@ -32,6 +32,9 @@ export default function EditUserModal({ isOpen, onClose, user, onSubmit }) {
     { value: 'analyst', label: 'Analyst' },
     { value: 'admin', label: 'Admin' },
     { value: 'legal', label: 'Legal' },
+    { value: 'valuation', label: 'Valuation' },
+    { value: 'dcrevenue', label: 'DC Revenue' },
+    { value: 'dcenforcement', label: 'DC Enforcement' },
     { value: 'user', label: 'User' },
     { value: 'armourer', label: 'Armourer' }
   ];

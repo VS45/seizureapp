@@ -358,7 +358,7 @@ export default function SeizuresDashboard() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
                           <Link
-                            href={`/legal/seizures/${seizure._id}`}
+                            href={`/valuation/seizures/${seizure._id}`}
                             className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
                             title="View Details"
                           >
@@ -372,7 +372,7 @@ export default function SeizuresDashboard() {
                             <FiEdit />
                           </Link> */}
                           <Link
-                            href={`/legal/seizures/${seizure._id}/operation`}
+                            href={`/admin/seizures/${seizure._id}/operation`}
                             className="text-purple-600 hover:text-purple-900 p-1 rounded hover:bg-purple-50"
                             title="Update Operation"
                           >
