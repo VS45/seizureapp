@@ -11,10 +11,8 @@ export default function CreatorLayout({ children }) {
     const pathname = usePathname()
 
     const navItems = [
-        { name: 'Dashboard', href: '/creator/dashboard', icon: <FiHome size={20} /> },
-        { name: 'Seizures', href: '/creator/seizures', icon: <FiFileText size={20} /> },
-        { name: 'Charts', href: '/creator/reports/charts', icon: <FiPieChart size={20} /> },
-        { name: 'Create Seizure', href: '/creator/seizures/create', icon: <FiFileText size={20} /> },
+        { name: 'Dashboard', href: '/validator/dashboard', icon: <FiHome size={20} /> },
+        { name: 'Seizures', href: '/validator/seizures', icon: <FiFileText size={20} /> },
     ]
 
     const fetchUserData = async () => {
@@ -23,11 +21,10 @@ export default function CreatorLayout({ children }) {
             if (!response.ok)  return router.push('/login');
 
             const userData = await response.json();
-            console.log(userData.user)
             setUser(userData.user);
 
             // Check if user is admin - only admins can access admin pages
-            if (userData.user.role !== 'creator') {
+            if (userData.user.role !== 'validator') {
                 setError('You do not have permission to access admin pages');
                 setLoading(false);
 
@@ -85,7 +82,7 @@ export default function CreatorLayout({ children }) {
     }
 
     // Only render the layout if user is admin and no errors
-    if (!user || user.role !== 'creator') {
+    if (!user || user.role !== 'validator') {
         return (
             <div className="flex justify-center items-center h-screen">
                 <div className="text-center">
