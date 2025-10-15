@@ -12,11 +12,8 @@ export default function AuthLayout({ children }) {
 
   const navItems = [
     { name: 'Dashboard', href: '/dashboard', icon: <FiHome size={20} /> },
-    { name: 'Create Seizure', href: '/seizures/create', icon: <FiFileText size={20} /> },
-    
     { name: 'Reports', href: '/reports', icon: <FiBarChart2 size={20} /> },
     { name: 'Settings', href: '/settings', icon: <FiSettings size={20} /> },
-     { name: 'Admin', href: '/admin', icon: '🏠' },
   ]
 
   useEffect(() => {
