@@ -854,7 +854,7 @@ export default function SeizureForm() {
   
   // Render commodity section for each commodity
   const renderCommoditySection = (commodity, index) => {
-    const goodsTypes = [
+ const goodsTypes = [
       'Beverages', 
       'Medicine & Pharmaceuticals',
       'Intellectual Property Rights',
@@ -873,9 +873,12 @@ export default function SeizureForm() {
       'Household Effect',
       'Abandoned Seizure',
       'Supermarket Items',
+'Hazardous Waste',
+ 'Ozone Depleting substances',
+  'Chemicals', 
+  'Used Items',
       'Others',
     ];
-
     const units = [
       'kilogram', 'gram', 'litre', 'piece', 'package', 'Bales', 
       'Bus', 'Lorry', 'Cartons', 'Tins', 'Jerrycan', 'Drums', 'Cartridges', 
