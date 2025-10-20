@@ -9,6 +9,9 @@ export default function AIReportsDashboard() {
   const router = useRouter();
   const [activeReport, setActiveReport] = useState('ai-summary');
   const [loading, setLoading] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  const [searchResults, setSearchResults] = useState(null);
   const [filters, setFilters] = useState({
     startDate: null,
     endDate: null,
@@ -26,6 +29,60 @@ export default function AIReportsDashboard() {
     // }
   }, [router]);
 
+  // Handle AI Search
+  const handleAISearch = async () => {
+    if (!aiSearch.trim()) {
+      setSearchError('Please enter a search query');
+      return;
+    }
+
+    setSearchLoading(true);
+    setSearchError('');
+    setSearchResults(null);
+    
+    try {
+      const params = new URLSearchParams();
+      params.append('aiSearch', aiSearch.trim());
+      if (filters.startDate) params.append('dateFrom', filters.startDate.toISOString());
+      if (filters.endDate) params.append('dateTo', filters.endDate.toISOString());
+      if (filters.riskLevel) params.append('riskLevel', filters.riskLevel);
+      if (filters.priority) params.append('priority', filters.priority);
+      if (filters.hasAlerts) params.append('hasAlerts', filters.hasAlerts);
+
+      const response = await fetch(`/api/seizures/reports?${params}`);
+      
+      if (!response.ok) {
+        throw new Error(`Search failed: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      setSearchResults(result);
+      setActiveReport('ai-summary');
+      
+      // Show success message
+      setSearchError('');
+      
+    } catch (error) {
+      console.error('AI Search error:', error);
+      setSearchError(error.message || 'Failed to perform AI search. Please try again.');
+      setSearchResults(null);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  // Handle Enter key press for search
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleAISearch();
+    }
+  };
+
   const renderReportContent = () => {
     switch (activeReport) {
       case 'ai-risk-analysis':
@@ -39,7 +96,15 @@ export default function AIReportsDashboard() {
       case 'ai-trends':
         return <AITrendsReport filters={filters} />;
       default:
-        return <AISummaryReport filters={filters} aiSearch={aiSearch} />;
+        return (
+          <AISummaryReport 
+            filters={filters} 
+            aiSearch={aiSearch}
+            searchResults={searchResults}
+            searchLoading={searchLoading}
+            searchError={searchError}
+          />
+        );
     }
   };
 
@@ -66,17 +131,59 @@ export default function AIReportsDashboard() {
               <input
                 type="text"
                 value={aiSearch}
-                onChange={(e) => setAiSearch(e.target.value)}
+                onChange={(e) => {
+                  setAiSearch(e.target.value);
+                  setSearchError(''); // Clear error when user types
+                }}
+                onKeyPress={handleKeyPress}
                 className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="e.g., 'Show me high-risk pharmaceutical seizures from Lagos in the last month'"
+                disabled={searchLoading}
               />
               <button
-                onClick={() => setActiveReport('ai-summary')}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                onClick={handleAISearch}
+                disabled={searchLoading || !aiSearch.trim()}
+                className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                  searchLoading || !aiSearch.trim()
+                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
               >
-                Ask AI
+                {searchLoading ? (
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Searching...
+                  </div>
+                ) : (
+                  'Ask AI'
+                )}
               </button>
             </div>
+            
+            {/* Search Error Alert */}
+            {searchError && (
+              <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-center">
+                  <div className="text-red-500 mr-2">⚠️</div>
+                  <p className="text-red-700 text-sm">{searchError}</p>
+                </div>
+              </div>
+            )}
+            
+            {/* Search Success Alert */}
+            {searchResults && !searchError && (
+              <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center">
+                  <div className="text-green-500 mr-2">✅</div>
+                  <p className="text-green-700 text-sm">
+                    AI search completed! Found {searchResults.seizures?.length || 0} results.
+                    {searchResults.aiAnalytics?.searchExplanation && (
+                      <span className="ml-2">({searchResults.aiAnalytics.searchExplanation})</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Report Type Selector */}
@@ -195,38 +302,61 @@ export default function AIReportsDashboard() {
   );
 }
 
-// AI-Enhanced Report Components
-function AISummaryReport({ filters, aiSearch }) {
+// Updated AISummaryReport to handle search results
+function AISummaryReport({ filters, aiSearch, searchResults, searchLoading, searchError }) {
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [aiInsights, setAiInsights] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchAISummaryReport();
-  }, [filters, aiSearch]);
+  }, [filters, searchResults]);
 
   const fetchAISummaryReport = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (filters.startDate) params.append('dateFrom', filters.startDate.toISOString());
-      if (filters.endDate) params.append('dateTo', filters.endDate.toISOString());
-      if (filters.riskLevel) params.append('riskLevel', filters.riskLevel);
-      if (filters.priority) params.append('priority', filters.priority);
-      if (filters.hasAlerts) params.append('hasAlerts', filters.hasAlerts);
-      if (aiSearch) params.append('aiSearch', aiSearch);
+      // Use search results if available, otherwise fetch fresh data
+      if (searchResults) {
+        setData(searchResults.seizures || []);
+        setAiInsights(searchResults.aiAnalytics || {});
+      } else {
+        const params = new URLSearchParams();
+        if (filters.startDate) params.append('dateFrom', filters.startDate.toISOString());
+        if (filters.endDate) params.append('dateTo', filters.endDate.toISOString());
+        if (filters.riskLevel) params.append('riskLevel', filters.riskLevel);
+        if (filters.priority) params.append('priority', filters.priority);
+        if (filters.hasAlerts) params.append('hasAlerts', filters.hasAlerts);
+        if (aiSearch) params.append('aiSearch', aiSearch);
 
-      const response = await fetch(`/api/seizures/reports?${params}`);
-      const result = await response.json();
-      
-      setData(result.seizures || []);
-      setAiInsights(result.aiAnalytics || {});
+        const response = await fetch(`/api/seizures/reports?${params}`);
+        const result = await response.json();
+        
+        setData(result.seizures || []);
+        setAiInsights(result.aiAnalytics || {});
+      }
     } catch (error) {
       console.error('Error fetching AI summary report:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  if (searchLoading) return <AIReportSkeleton />;
+  
+  if (searchError) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-red-500 text-lg mb-4">⚠️ Search Error</div>
+        <p className="text-gray-600">{searchError}</p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
 
   if (loading) return <AIReportSkeleton />;
   if (!data) return <div className="text-center py-12">No data available</div>;
@@ -242,6 +372,24 @@ function AISummaryReport({ filters, aiSearch }) {
         )}
       </div>
       
+      {/* Search Results Info */}
+      {searchResults && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <div className="text-green-500 mr-2">🔍</div>
+            <div>
+              <p className="text-green-800 font-medium">AI Search Results</p>
+              <p className="text-green-700 text-sm">
+                Found {data.length} seizures matching your query
+                {aiInsights?.searchExplanation && (
+                  <span className="ml-2">({aiInsights.searchExplanation})</span>
+                )}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* AI-Generated Executive Summary */}
       {aiInsights?.executiveSummary && (
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
@@ -253,7 +401,13 @@ function AISummaryReport({ filters, aiSearch }) {
       {/* Key Risk Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <AIMetricCard 
-          title="Total Risk Score" 
+          title="Total Seizures" 
+          value={data.length} 
+          format="count"
+          trend="stable"
+        />
+        <AIMetricCard 
+          title="Avg Risk Score" 
           value={aiInsights?.summary?.averageRiskScore || 0} 
           format="score"
           trend={aiInsights?.trends?.riskTrend}
@@ -265,14 +419,8 @@ function AISummaryReport({ filters, aiSearch }) {
           trend="up"
         />
         <AIMetricCard 
-          title="Anomalies Detected" 
-          value={aiInsights?.summary?.anomalyCount || 0} 
-          format="count"
-          trend="up"
-        />
-        <AIMetricCard 
           title="AI Confidence" 
-          value={aiInsights?.confidence || 85} 
+          value={aiInsights?.confidence || (searchResults ? 95 : 85)} 
           format="percentage"
           trend="stable"
         />
@@ -281,7 +429,9 @@ function AISummaryReport({ filters, aiSearch }) {
       {/* Top High-Risk Seizures */}
       <div className="bg-white rounded-lg shadow border">
         <div className="p-4 border-b">
-          <h3 className="text-lg font-medium text-gray-800">🚨 Top High-Risk Seizures</h3>
+          <h3 className="text-lg font-medium text-gray-800">
+            {searchResults ? '🔍 Search Results' : '🚨 Top High-Risk Seizures'}
+          </h3>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full">
@@ -295,7 +445,7 @@ function AISummaryReport({ filters, aiSearch }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {data.slice(0, 5).map((seizure, index) => (
+              {data.slice(0, 10).map((seizure, index) => (
                 <tr key={seizure._id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">{seizure.referenceID}</td>
                   <td className="px-4 py-3">
@@ -317,10 +467,15 @@ function AISummaryReport({ filters, aiSearch }) {
             </tbody>
           </table>
         </div>
+        {data.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            No seizures found matching your criteria
+          </div>
+        )}
       </div>
 
       {/* AI Recommendations */}
-      {aiInsights?.recommendations && (
+      {aiInsights?.recommendations && aiInsights.recommendations.length > 0 && (
         <div className="bg-white rounded-lg shadow border">
           <div className="p-4 border-b">
             <h3 className="text-lg font-medium text-gray-800">💡 AI Recommendations</h3>
@@ -349,6 +504,7 @@ function AISummaryReport({ filters, aiSearch }) {
   );
 }
 
+// ... rest of your component functions remain the same (AIRiskAnalysisReport, AIAnomalyReport, etc.)
 function AIRiskAnalysisReport({ filters, aiSearch }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);

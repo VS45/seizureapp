@@ -10,7 +10,8 @@ import {
   detectAnomalies, 
   generateRecommendations,
   generateRealTimeAnalytics,
-  checkForAlerts 
+  checkForAlerts, 
+  performAISearch
 } from "@/lib/ai-services";
 
 //Get AI Predictions and Insights
