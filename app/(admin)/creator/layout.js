@@ -26,8 +26,8 @@ export default function CreatorLayout({ children }) {
             console.log(userData.user)
             setUser(userData.user);
 
-            // Check if user is admin - only admins can access admin pages
-            if (userData.user.role !== 'creator') {
+            // Check if user is admin - only admins and creator can access creator pages
+            if (userData.user.role !== 'creator' && userData.user.role !== 'admin') {
                 setError('You do not have permission to access admin pages');
                 setLoading(false);
 
@@ -85,7 +85,7 @@ export default function CreatorLayout({ children }) {
     }
 
     // Only render the layout if user is admin and no errors
-    if (!user || user.role !== 'creator') {
+    if (!user ||( user.role !== 'creator' && user.role !== 'admin')) {
         return (
             <div className="flex justify-center items-center h-screen">
                 <div className="text-center">

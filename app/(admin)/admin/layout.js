@@ -29,7 +29,7 @@ export default function AdminLayout({ children }) {
         { name: 'Add Users', href: '/admin/users/create', icon: <FiUserPlus size={20} /> },
        /*  { name: 'Charts', href: '/admin/reports/charts', icon: <FiPieChart size={20} /> }, */
         { name: 'Charts Reports', href: '/admin/reports/technical', icon: <FiPieChart size={20} /> },
-        { name: 'Create Seizure', href: '/seizures/create', icon: <FiFileText size={20} /> },
+        { name: 'Create Seizure', href: '/creator/seizures/create', icon: <FiFileText size={20} /> },
     ]
 
     const fetchUserData = async () => {
