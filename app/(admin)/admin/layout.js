@@ -27,7 +27,7 @@ export default function AdminLayout({ children }) {
         { name: 'Enhance Reports', href: '/admin/enhanced', icon: <FiBarChart2 size={20} /> },
         { name: 'Users', href: '/admin/users', icon: <FiUsers size={20} /> },
         { name: 'Add Users', href: '/admin/users/create', icon: <FiUserPlus size={20} /> },
-       /*  { name: 'Charts', href: '/admin/reports/charts', icon: <FiPieChart size={20} /> }, */
+        { name: 'Armory', href: '/armory', icon: <FiPieChart size={20} /> },
         { name: 'Charts Reports', href: '/admin/reports/technical', icon: <FiPieChart size={20} /> },
         { name: 'Create Seizure', href: '/creator/seizures/create', icon: <FiFileText size={20} /> },
     ]

@@ -1,3 +1,4 @@
+// app/api/auth/mobile-login/route.js (New file)
 import { NextResponse } from 'next/server';
 import { generateToken, logActivity } from '@/lib/auth';
 import User from '@/models/User';
@@ -20,13 +21,13 @@ export async function POST(request) {
     if (!user.isVerified) {
       return NextResponse.json({ error: 'Account not verified' }, { status: 401 });
     }
+    
     const isMatch = await user.comparePassword(password);
     console.log(isMatch);
-    console.log(password);
+      console.log(password);
     if (!isMatch) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
-    
     // Generate token with error handling
     let token;
     try {
@@ -42,7 +43,7 @@ export async function POST(request) {
     // Log activity
     const ip = request.headers.get('x-forwarded-for') || request.ip;
     const userAgent = request.headers.get('user-agent');
-    await logActivity(user._id, 'login', ip, userAgent);
+    await logActivity(user._id, 'mobile-login', ip, userAgent);
     
     await user.updateActivity();
     
@@ -58,35 +59,21 @@ export async function POST(request) {
       } : null
     };
     
-    const response = NextResponse.json({ 
+    // Return response with token for mobile
+    return NextResponse.json({ 
       message: 'Login successful',
-      user: userData
+      user: userData,
+      token: token,
+      expiresIn: 2 * 60 * 60 // 2 hours in seconds
+    }, {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      }
     });
     
-    // Get the host from request headers for dynamic configuration
-    const host = request.headers.get('host') || 'localhost:3000';
-    const isProduction = process.env.NODE_ENV === 'production';
-    const isIPAddress = host.match(/^\d+\.\d+\.\d+\.\d+(:\d+)?$/);
-    
-    // Set cookie - relaxed settings for IP address
-    response.cookies.set('token', token, {
-      httpOnly: true,
-      secure: isProduction && !isIPAddress, // Don't force HTTPS for IP addresses
-      sameSite: 'lax', // Use 'lax' instead of 'strict' for IP addresses
-      maxAge: 2 * 60 * 60,
-      path: '/',
-      // No domain setting for IP addresses
-    });
-    
-    // Add CORS headers for IP address
-    response.headers.set('Access-Control-Allow-Origin', 
-      isProduction ? `http://${host}` : 'http://localhost:3000'
-    );
-    response.headers.set('Access-Control-Allow-Credentials', 'true');
-    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    
-    return response;
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json(
@@ -94,4 +81,15 @@ export async function POST(request) {
       { status: 500 }
     );
   }
+}
+
+export async function OPTIONS(request) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
 }
