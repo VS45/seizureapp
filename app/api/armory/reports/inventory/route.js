@@ -12,9 +12,12 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(user, 'read', 'reports')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+ if (user.role !== "admin" && user.role !== "armourer") {
+             return NextResponse.json(
+               { error: "Insufficient permissions to access armory data" },
+               { status: 403 }
+             );
+           }
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status'); // due, overdue, pending
