@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
-import { authenticate, hasPermission } from '@/lib/auth';
+import { authenticate } from '@/lib/auth';
 import Officer from '@/models/Officer';
 import Distribution from '@/models/Distribution';
 import PatrolTeam from '@/models/PatrolTeam';
@@ -17,9 +17,12 @@ export async function GET(request, { params }) {
     const { id } =await params;
 
     // Check if user has permission to view this officer
-    if (!hasPermission(user, 'read', 'officers', id)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+     if (user.role !== "admin" && user.role !== "armourer") {
+         return NextResponse.json(
+           { error: "Insufficient permissions to access armory data" },
+           { status: 403 }
+         );
+       }
 
     const officer = await Officer.findById(id)
       .populate('office', 'name code location')
@@ -84,9 +87,12 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(user, 'update', 'officers')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+     if (user.role !== "admin" && user.role !== "armourer") {
+            return NextResponse.json(
+              { error: "Insufficient permissions to access armory data" },
+              { status: 403 }
+            );
+          }
 
     const { id } =await params;
     const body = await request.json();

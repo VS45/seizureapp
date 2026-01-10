@@ -17,9 +17,12 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(user, 'read', 'offices')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+     if (user.role !== "admin" && user.role !== "armourer") {
+            return NextResponse.json(
+              { error: "Insufficient permissions to access armory data" },
+              { status: 403 }
+            );
+          }
 
     const { id } =await params;
     const office = await Office.findById(id); // Removed populate since no createdBy field
@@ -62,9 +65,12 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(user, 'update', 'offices')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+     if (user.role !== "admin" && user.role !== "armourer") {
+            return NextResponse.json(
+              { error: "Insufficient permissions to access armory data" },
+              { status: 403 }
+            );
+          }
 
     const { id } =await params;
     const body = await request.json();
@@ -161,11 +167,14 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(user, 'delete', 'offices')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+     if (user.role !== "admin" && user.role !== "armourer") {
+            return NextResponse.json(
+              { error: "Insufficient permissions to access armory data" },
+              { status: 403 }
+            );
+          }
 
-    const { id } = params;
+    const { id } =await params;
     
     // Check if office is being used by any patrol teams
     const PatrolTeam = (await import('@/models/PatrolTeam')).default;

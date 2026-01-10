@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import  connectDB  from '@/lib/db';
-import { authenticate, hasPermission } from '@/lib/auth';
+import { authenticate} from '@/lib/auth';
 import Distribution from '@/models/Distribution';
 
 export async function POST(request, { params }) {
@@ -12,9 +12,12 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(user, 'update', 'distributions')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+   if (user.role !== "admin" && user.role !== "armourer") {
+           return NextResponse.json(
+             { error: "Insufficient permissions to access armory data" },
+             { status: 403 }
+           );
+         }
 
     const { id } = await params;
     const { condition, remarks, nextRenewalDate } = await request.json();

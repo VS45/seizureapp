@@ -107,10 +107,12 @@ export async function DELETE(request, { params }) {
     }
 
     // Use permission system instead of hardcoded role check
-    if (!hasPermission(user, 'delete', 'patrols')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
+   if (user.role !== "admin" && user.role !== "armourer") {
+         return NextResponse.json(
+           { error: "Insufficient permissions to access armory data" },
+           { status: 403 }
+         );
+       }
     const { id } = await params; 
     const patrolTeam = await PatrolTeam.findById(id);
 
