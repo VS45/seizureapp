@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import  connectDB from '@/lib/db';
-import { authenticate, hasPermission } from '@/lib/auth';
+import { authenticate } from '@/lib/auth';
 import { officeSchema } from '@/lib/validation';
 import Office from '@/models/office';
 
@@ -19,12 +19,12 @@ export async function GET(request) {
     }
 
     // Check permissions
-    if (!hasPermission(user, 'read', 'offices')) {
-      return NextResponse.json(
-        { error: 'Insufficient permissions to access offices' },
-        { status: 403 }
-      );
-    }
+      if (user.role !== "admin" && user.role !== "armourer") {
+             return NextResponse.json(
+               { error: "Insufficient permissions to access armory data" },
+               { status: 403 }
+             );
+           }
 
     await connectDB();
 
@@ -106,12 +106,12 @@ export async function POST(request) {
     }
 
     // Check permissions
-    if (!hasPermission(user, 'create', 'offices')) {
-      return NextResponse.json(
-        { error: 'Insufficient permissions to create offices' },
-        { status: 403 }
-      );
-    }
+     if (user.role !== "admin" && user.role !== "armourer") {
+            return NextResponse.json(
+              { error: "Insufficient permissions to access armory data" },
+              { status: 403 }
+            );
+          }
 
     await connectDB();
 

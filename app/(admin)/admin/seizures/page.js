@@ -154,7 +154,7 @@ export default function SeizuresDashboard() {
                 Clear
               </button>
               <Link
-                href="/seizures/create"
+                href="/creator/seizures/create"
                 className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
                 <FiPlus className="mr-2" />

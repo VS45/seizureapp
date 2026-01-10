@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import  connectDB  from '@/lib/db'; 
-import { authenticate, hasPermission } from '@/lib/auth';
+import { authenticate} from '@/lib/auth';
 import Armory from '@/models/Armory';
 
 // GET /api/armories/[id] - Get single armory
@@ -13,8 +13,11 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(user, 'read', 'armories')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+     if (user.role !== "admin" && user.role !== "armourer") {
+      return NextResponse.json(
+        { error: "Insufficient permissions to access armory data" },
+        { status: 403 }
+      );
     }
 
     const { id } = await params; 
@@ -52,13 +55,12 @@ export async function PATCH(request, { params }) {
     }
 
     // Check permissions
-    if (!hasPermission(user, 'update', 'armories')) {
-      return NextResponse.json(
-        { error: 'Insufficient permissions to update armories' },
-        { status: 403 }
-      );
-    }
-
+     if (user.role !== "admin" && user.role !== "armourer") {
+        return NextResponse.json(
+          { error: "Insufficient permissions to access armory data" },
+          { status: 403 }
+        );
+      }
     const { id } =await params;
 
     // Parse and validate request body
@@ -227,10 +229,12 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(user, 'update', 'armories')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
+      if (user.role !== "admin" && user.role !== "armourer") {
+         return NextResponse.json(
+           { error: "Insufficient permissions to access armory data" },
+           { status: 403 }
+         );
+       }
     const { id } =await params;
     const body = await request.json();
 
@@ -287,10 +291,12 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(user, 'delete', 'armories')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
+    if (user.role !== "admin" && user.role !== "armourer") {
+         return NextResponse.json(
+           { error: "Insufficient permissions to access armory data" },
+           { status: 403 }
+         );
+       }
     const { id } =await params;
     const armory = await Armory.findByIdAndDelete(id);
 

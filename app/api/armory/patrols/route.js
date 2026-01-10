@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
-import { authenticate, hasPermission } from '@/lib/auth';
+import { authenticate } from '@/lib/auth';
 import { patrolTeamSchema } from '@/lib/validation';
 import PatrolTeam from '@/models/PatrolTeam';
 import Office from '@/models/office';
 
 export async function GET(request) {
-  console.log('Received GET /api/patrols request');
   try {
     await connectDB();
     const user = await authenticate(request);
@@ -15,9 +14,12 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(user, 'read', 'patrols')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+     if (user.role !== "admin" && user.role !== "armourer") {
+            return NextResponse.json(
+              { error: "Insufficient permissions to access armory data" },
+              { status: 403 }
+            );
+          }
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -106,9 +108,12 @@ export async function POST(request) {
     }
 
     // Use the permission system instead of hardcoded role check
-    if (!hasPermission(user, 'create', 'patrols')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    if (user.role !== "admin" && user.role !== "armourer") {
+           return NextResponse.json(
+             { error: "Insufficient permissions to access armory data" },
+             { status: 403 }
+           );
+         }
 
     const body = await request.json();
     

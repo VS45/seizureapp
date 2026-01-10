@@ -56,7 +56,7 @@ export default function CreatePatrolPage() {
   const fetchInitialData = async () => {
     try {
       const [officesRes, officersRes] = await Promise.all([
-        fetch('/api/armory/offices'),
+        fetch('/api/offices'),
         fetch('/api/armory/officers')
       ])
 

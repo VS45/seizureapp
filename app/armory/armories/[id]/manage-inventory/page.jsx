@@ -79,7 +79,7 @@ export default function ManageArmoryInventoryPage() {
   const fetchArmory = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/armories/${armoryId}`)
+      const response = await fetch(`/api/armory/armories/${armoryId}`)
       if (response.ok) {
         const data = await response.json()
         setArmory(data.armory)
@@ -227,7 +227,7 @@ export default function ManageArmoryInventoryPage() {
         equipment: newEquipment
       }
 
-      const response = await fetch(`/api/armories/${armoryId}`, {
+      const response = await fetch(`/api/armory/armories/${armoryId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updateData)
@@ -235,7 +235,7 @@ export default function ManageArmoryInventoryPage() {
 
       if (response.ok) {
         alert('Inventory items added successfully!')
-        router.push(`/armories/${armoryId}`)
+        router.push(`/armory/armories/${armoryId}`)
       } else {
         const error = await response.json()
         alert(`Failed to update inventory: ${error.error}`)
@@ -306,7 +306,7 @@ export default function ManageArmoryInventoryPage() {
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Armory Not Found</h2>
         <p className="text-gray-600 mb-6">The armory you're looking for doesn't exist.</p>
         <button
-          onClick={() => router.push('/armories')}
+          onClick={() => router.push('/armory/armories')}
           className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
         >
           Back to Armories
@@ -916,7 +916,7 @@ export default function ManageArmoryInventoryPage() {
               <div className="flex space-x-3">
                 <button
                   type="button"
-                  onClick={() => router.push(`/armories/${armoryId}`)}
+                  onClick={() => router.push(`/armory/armories/${armoryId}`)}
                   className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                 >
                   Cancel

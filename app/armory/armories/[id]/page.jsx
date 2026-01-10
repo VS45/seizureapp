@@ -58,7 +58,7 @@ export default function ArmoryDetailPage() {
 
   const fetchArmory = async () => {
     try {
-      const response = await fetch(`/api/armories/${id}`)
+      const response = await fetch(`/api/armory/armories/${id}`)
       if (response.ok) {
         const data = await response.json()
         setArmory(data.armory)
@@ -135,7 +135,7 @@ export default function ArmoryDetailPage() {
       <div className="text-center py-8">
         <h1 className="text-2xl font-bold text-gray-900">Armory not found</h1>
         <button
-          onClick={() => router.push('/armories')}
+          onClick={() => router.push('/armory/armories')}
           className="mt-4 text-blue-600 hover:text-blue-700"
         >
           Back to Armories

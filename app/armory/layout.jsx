@@ -52,36 +52,37 @@ export default function ArmoryLayout({ children }) {
       subItems: [
         { name: 'All Armories', href: '/armory/armories', icon: <Warehouse size={20} /> },
         { name: 'Create New Armory', href: '/armory/armories/create', icon: <Plus size={20} /> },
+        { name: 'Add Weapons', href: '/armory/armories/weapons/create', icon: <Plus size={20} /> },
         { name: 'Manage Inventory', href: '/armory/armories/manage-inventory', icon: <Package size={20} /> },
       ]
     },
     { 
       name: 'Officers', 
-      href: '/officers', 
+      href: '/armory/officers', 
       icon: <Users size={20} />,
       roles: ['admin', 'armourer', 'officer']
     },
     { 
       name: 'Patrol Teams', 
-      href: '/patrols', 
+      href: '/armory/patrols', 
       icon: <Shield size={20} />,
       roles: ['admin', 'armourer']
     },
     { 
       name: 'Distributions', 
-      href: '/distributions', 
+      href: '/armory/distributions', 
       icon: <FileText size={20} />,
       roles: ['admin', 'armourer', 'officer']
     },
     { 
       name: 'Offices', 
-      href: '/offices', 
+      href: '/armory/offices', 
       icon: <Building size={20} />,
       roles: ['admin']
     },
     { 
       name: 'Reports', 
-      href: '/reports', 
+      href: '/armory/reports', 
       icon: <FileText size={20} />,
       roles: ['admin', 'armourer']
     },
@@ -91,7 +92,7 @@ export default function ArmoryLayout({ children }) {
     try {
       const response = await fetch('/api/auth/me');
       if (!response.ok) {
-        router.push('/auth/login');
+        router.push('/login');
         return;
       }
 

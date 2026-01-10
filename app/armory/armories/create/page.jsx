@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { FiSave, FiX, FiPlus, FiMinus } from 'react-icons/fi'
+import { FiSave, FiX, FiPlus, FiMinus, FiRefreshCw } from 'react-icons/fi'
 
 export default function CreateArmoryPage() {
     const router = useRouter()
@@ -10,6 +10,8 @@ export default function CreateArmoryPage() {
     const [authLoading, setAuthLoading] = useState(true)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
+    const [weaponTypes, setWeaponTypes] = useState([]) // New state for weapon types
+    const [loadingWeapons, setLoadingWeapons] = useState(false) // Loading state for weapon types
     const [formData, setFormData] = useState({
         armoryName: '',
         armoryCode: '',
@@ -36,6 +38,43 @@ export default function CreateArmoryPage() {
         notes: ''
     })
 
+    // Fetch available weapon types with their quantities
+    const fetchWeaponTypes = async () => {
+        setLoadingWeapons(true)
+        try {
+            const response = await fetch('/api/armory/weapon-types')
+            if (!response.ok) {
+                throw new Error('Failed to fetch weapon types')
+            }
+            const data = await response.json()
+            setWeaponTypes(data.weaponTypes || [])
+        } catch (error) {
+            console.error('Error fetching weapon types:', error)
+            setError('Failed to load weapon types. Please try again.')
+        } finally {
+            setLoadingWeapons(false)
+        }
+    }
+
+    // Get selected weapon type details
+    const getSelectedWeaponType = () => {
+        return weaponTypes.find(w => w.weaponType === newWeapon.weaponType)
+    }
+
+    // Update available quantity when weapon type changes
+    const handleWeaponTypeChange = (e) => {
+        const weaponType = e.target.value
+        const selectedWeapon = weaponTypes.find(w => w.weaponType === weaponType)
+        
+        setNewWeapon(prev => ({
+            ...prev,
+            weaponType: weaponType,
+            manufacturer: selectedWeapon?.manufacturer || '',
+            // Reset quantity to 1 when changing weapon type
+            quantity: 1
+        }))
+    }
+
     const fetchUserData = async () => {
         try {
             const response = await fetch('/api/auth/me')
@@ -48,7 +87,6 @@ export default function CreateArmoryPage() {
             setUser(userData.user)
 
             // Check if user has permission to create armories
-            // Only admin and armourer can create armories, officers cannot
             const allowedRoles = ['admin', 'armourer']
             if (!allowedRoles.includes(userData.user.role)) {
                 setError('You do not have permission to create armories. Only administrators and armourers can create new armories.')
@@ -72,6 +110,7 @@ export default function CreateArmoryPage() {
 
     useEffect(() => {
         fetchUserData()
+        fetchWeaponTypes()
     }, [])
 
     const handleInputChange = (e) => {
@@ -95,18 +134,50 @@ export default function CreateArmoryPage() {
 
     const handleWeaponInputChange = (e) => {
         const { name, value } = e.target
-        setNewWeapon(prev => ({
-            ...prev,
-            [name]: value
-        }))
+        
+        // If changing quantity, ensure it doesn't exceed available quantity
+        if (name === 'quantity') {
+            const selectedWeapon = getSelectedWeaponType()
+            const maxQuantity = selectedWeapon?.availableQuantity || 0
+            const newQuantity = Math.min(Math.max(1, parseInt(value) || 1), maxQuantity)
+            
+            setNewWeapon(prev => ({
+                ...prev,
+                [name]: newQuantity
+            }))
+        } else {
+            setNewWeapon(prev => ({
+                ...prev,
+                [name]: value
+            }))
+        }
     }
 
     const addWeapon = () => {
         if (newWeapon.weaponType && newWeapon.serialNumber) {
+            const selectedWeapon = getSelectedWeaponType()
+            
+            // Check if we have enough quantity available
+            if (selectedWeapon && newWeapon.quantity > selectedWeapon.availableQuantity) {
+                alert(`Cannot add ${newWeapon.quantity} weapons. Only ${selectedWeapon.availableQuantity} available.`)
+                return
+            }
+            
             setFormData(prev => ({
                 ...prev,
                 weapons: [...prev.weapons, { ...newWeapon }]
             }))
+            
+            // Update the available quantity in weaponTypes state
+            if (selectedWeapon) {
+                const updatedWeaponTypes = weaponTypes.map(w => 
+                    w.weaponType === newWeapon.weaponType 
+                        ? { ...w, availableQuantity: w.availableQuantity - newWeapon.quantity }
+                        : w
+                )
+                setWeaponTypes(updatedWeaponTypes)
+            }
+            
             setNewWeapon({
                 weaponType: '',
                 serialNumber: '',
@@ -115,10 +186,24 @@ export default function CreateArmoryPage() {
                 manufacturer: '',
                 notes: ''
             })
+        } else {
+            alert('Please select a weapon type and enter a serial number')
         }
     }
 
     const removeWeapon = (index) => {
+        const weaponToRemove = formData.weapons[index]
+        
+        // Return the quantity to available quantity when removing
+        if (weaponToRemove) {
+            const updatedWeaponTypes = weaponTypes.map(w => 
+                w.weaponType === weaponToRemove.weaponType 
+                    ? { ...w, availableQuantity: w.availableQuantity + weaponToRemove.quantity }
+                    : w
+            )
+            setWeaponTypes(updatedWeaponTypes)
+        }
+        
         setFormData(prev => ({
             ...prev,
             weapons: prev.weapons.filter((_, i) => i !== index)
@@ -158,6 +243,13 @@ export default function CreateArmoryPage() {
         } finally {
             setLoading(false)
         }
+    }
+
+    // Calculate total quantity of a weapon type already added to form
+    const getAlreadyAddedQuantity = (weaponType) => {
+        return formData.weapons
+            .filter(w => w.weaponType === weaponType)
+            .reduce((total, w) => total + w.quantity, 0)
     }
 
     // Show authentication loading state
@@ -368,21 +460,65 @@ export default function CreateArmoryPage() {
 
                 {/* Weapons Management */}
                 <div className="border-t pt-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Weapons Inventory</h3>
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-semibold text-gray-800">Weapons Inventory</h3>
+                        <button
+                            type="button"
+                            onClick={fetchWeaponTypes}
+                            disabled={loadingWeapons}
+                            className="flex items-center text-sm text-green-600 hover:text-green-800"
+                        >
+                            <FiRefreshCw className={`mr-1 ${loadingWeapons ? 'animate-spin' : ''}`} />
+                            Refresh Available Weapons
+                        </button>
+                    </div>
                     
                     {/* Add Weapon Form */}
                     <div className="bg-gray-50 p-4 rounded-lg mb-4">
                         <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-3">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
-                                <input
-                                    type="text"
-                                    name="weaponType"
-                                    value={newWeapon.weaponType}
-                                    onChange={handleWeaponInputChange}
-                                    className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500"
-                                    placeholder="AK-47"
-                                />
+                                <div className="relative">
+                                    <select
+                                        name="weaponType"
+                                        value={newWeapon.weaponType}
+                                        onChange={handleWeaponTypeChange}
+                                        className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500"
+                                        disabled={loadingWeapons}
+                                    >
+                                        <option value="">Select Type</option>
+                                        {weaponTypes.map((weapon, index) => {
+                                            const alreadyAdded = getAlreadyAddedQuantity(weapon.weaponType)
+                                            const netAvailable = weapon.availableQuantity - alreadyAdded
+                                            return (
+                                                <option 
+                                                    key={index} 
+                                                    value={weapon.weaponType}
+                                                    disabled={netAvailable <= 0}
+                                                >
+                                                    {weapon.weaponType} {netAvailable > 0 ? `(${netAvailable} available)` : '(Out of stock)'}
+                                                </option>
+                                            )
+                                        })}
+                                    </select>
+                                    {loadingWeapons && (
+                                        <div className="absolute right-2 top-2">
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                                        </div>
+                                    )}
+                                </div>
+                                {newWeapon.weaponType && (
+                                    <div className="mt-1 text-xs">
+                                        <span className="text-gray-600">
+                                            Available: {getSelectedWeaponType()?.availableQuantity || 0} units
+                                        </span>
+                                        {getAlreadyAddedQuantity(newWeapon.weaponType) > 0 && (
+                                            <span className="ml-2 text-orange-600">
+                                                (Already added: {getAlreadyAddedQuantity(newWeapon.weaponType)})
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Serial No *</label>
@@ -403,8 +539,14 @@ export default function CreateArmoryPage() {
                                     value={newWeapon.quantity}
                                     onChange={handleWeaponInputChange}
                                     min="1"
+                                    max={getSelectedWeaponType()?.availableQuantity || 1}
                                     className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500"
                                 />
+                                {newWeapon.weaponType && (
+                                    <div className="text-xs text-gray-500 mt-1">
+                                        Max: {getSelectedWeaponType()?.availableQuantity || 0}
+                                    </div>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Condition</label>
@@ -425,7 +567,7 @@ export default function CreateArmoryPage() {
                                 <input
                                     type="text"
                                     name="manufacturer"
-                                    value={newWeapon.manufacturer}
+                                    value={newWeapon.manufacturer || (getSelectedWeaponType()?.manufacturer || '')}
                                     onChange={handleWeaponInputChange}
                                     className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500"
                                     placeholder="Manufacturer"
@@ -435,7 +577,8 @@ export default function CreateArmoryPage() {
                                 <button
                                     type="button"
                                     onClick={addWeapon}
-                                    className="bg-green-600 text-white px-4 py-2 rounded flex items-center hover:bg-green-700"
+                                    disabled={!newWeapon.weaponType || !newWeapon.serialNumber}
+                                    className="bg-green-600 text-white px-4 py-2 rounded flex items-center hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <FiPlus className="mr-1" />
                                     Add

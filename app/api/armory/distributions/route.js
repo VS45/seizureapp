@@ -16,9 +16,12 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(user, 'read', 'distributions')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+     if (user.role !== "admin" && user.role !== "armourer") {
+         return NextResponse.json(
+           { error: "Insufficient permissions to access armory data" },
+           { status: 403 }
+         );
+       }
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -99,9 +102,12 @@ export async function POST(request) {
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  if (!hasPermission(user, 'create', 'distributions')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+   if (user.role !== "admin" && user.role !== "armourer") {
+         return NextResponse.json(
+           { error: "Insufficient permissions to access armory data" },
+           { status: 403 }
+         );
+       }
 
   // Parse + validate request body
   let body;

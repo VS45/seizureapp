@@ -35,7 +35,7 @@ export default function AuthLayout({ children }) {
           } else if (data.user.role === 'valuation') {
             router.push('/valuation/dashboard');
           }else if (data.user.role === 'armourer') {
-            router.push('/armories/dashboard');
+            router.push('/armory/armories/dashboard');
           }
           else{
             setUser(data.user);

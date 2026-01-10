@@ -186,7 +186,7 @@ export default function OfficersPage() {
         {/* Only show add button for admin and armourer */}
         {['admin', 'armourer'].includes(user.role) && (
           <button
-            onClick={() => router.push('/officers/create')}
+            onClick={() => router.push('/armory/officers/create')}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
           >
             <Plus className="w-5 h-5" />
@@ -321,7 +321,7 @@ export default function OfficersPage() {
             </p>
             {['admin', 'armourer'].includes(user.role) && (
               <button
-                onClick={() => router.push('/officers/create')}
+                onClick={() => router.push('/armory/officers/create')}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
               >
                 Add First Officer
