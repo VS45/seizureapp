@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
-import { authenticate, hasPermission } from '@/lib/auth';
+import { authenticate } from '@/lib/auth';
 import PatrolTeam from '@/models/PatrolTeam';
 import Office from '@/models/office';
 
