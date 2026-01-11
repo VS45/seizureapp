@@ -19,6 +19,7 @@ export default function AdminLayout({ children }) {
             subItems: [
                 { name: 'Checkpoints', href: '/admin/checkpoints', icon: <FiMapPin size={20} /> },
                 { name: 'Warehouses', href: '/admin/warehouses', icon: <FiArchive size={20} /> },
+                { name: 'Office', href: '/admin/offices', icon: <FiArchive size={20} /> }
             ]
         },
 

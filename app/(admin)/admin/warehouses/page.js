@@ -1,28 +1,29 @@
 'use client';
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function WarehousesList() {
   const [warehouses, setWarehouses] = useState([]);
+  const [offices, setOffices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingOffices, setLoadingOffices] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [officeSearchTerm, setOfficeSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showOfficeDropdown, setShowOfficeDropdown] = useState(false);
+  const [selectedOffice, setSelectedOffice] = useState(null);
   const [newWarehouse, setNewWarehouse] = useState({
     name: '',
-    description: ''
+    description: '',
+    officeCode: ''
   });
   const [creating, setCreating] = useState(false);
   const router = useRouter();
 
   const itemsPerPage = 10;
-
-  useEffect(() => {
-    fetchWarehouses();
-  }, [currentPage, searchTerm]);
 
   const fetchWarehouses = async () => {
     try {
@@ -44,6 +45,39 @@ export default function WarehousesList() {
     }
   };
 
+  useEffect(() => {
+    fetchWarehouses();
+  }, [currentPage, searchTerm]);
+
+  useEffect(() => {
+    const fetchOffices = async () => {
+      try {
+        const response = await fetch('/api/offices');
+        const data = await response.json();
+        if (response.ok) {
+          setOffices(data);
+        } else {
+          throw new Error(data.error || 'Failed to load offices');
+        }
+      } catch (err) {
+        setError('Failed to load office list. Please try again later.');
+      } finally {
+        setLoadingOffices(false);
+      }
+    };
+    
+    fetchOffices();
+  }, []);
+
+  // Filter offices based on search term
+  const filteredOffices = useMemo(() => {
+    if (!officeSearchTerm) return offices;
+    return offices.filter(office => 
+      office.name.toLowerCase().includes(officeSearchTerm.toLowerCase()) ||
+      office.code.toLowerCase().includes(officeSearchTerm.toLowerCase())
+    );
+  }, [offices, officeSearchTerm]);
+
   const handleDelete = async (id) => {
     if (!confirm('Are you sure you want to delete this warehouse?')) return;
 
@@ -63,8 +97,27 @@ export default function WarehousesList() {
     }
   };
 
+  const handleOfficeSelect = (officeCode) => {
+    const office = offices.find(o => o.code === officeCode);
+    setSelectedOffice(office);
+    setNewWarehouse(prev => ({ ...prev, officeCode }));
+    setShowOfficeDropdown(false);
+    setOfficeSearchTerm('');
+  };
+
+  const handleOfficeSearchChange = (e) => {
+    setOfficeSearchTerm(e.target.value);
+    setShowOfficeDropdown(true);
+  };
+
   const handleCreateWarehouse = async (e) => {
     e.preventDefault();
+    
+    if (!newWarehouse.officeCode) {
+      setError('Please select an office');
+      return;
+    }
+
     setCreating(true);
     
     try {
@@ -78,10 +131,13 @@ export default function WarehousesList() {
 
       if (response.ok) {
         setShowCreateModal(false);
-        setNewWarehouse({ name: '', description: '' });
+        setNewWarehouse({ name: '', description: '', officeCode: '' });
+        setSelectedOffice(null);
+        setOfficeSearchTerm('');
         fetchWarehouses(); // Refresh the list
       } else {
-        setError('Failed to create warehouse');
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to create warehouse');
       }
     } catch (error) {
       setError('Error creating warehouse');
@@ -131,6 +187,9 @@ export default function WarehousesList() {
                 Description
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Office Code
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Created
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -146,6 +205,9 @@ export default function WarehousesList() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-500">{warehouse.description || 'No description'}</div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-500">{warehouse.officeCode || 'N/A'}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-500">
@@ -240,17 +302,74 @@ export default function WarehousesList() {
                     rows="3"
                   />
                 </div>
+                
+                {/* Office Selection */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Office
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Search office..."
+                      value={officeSearchTerm}
+                      onChange={handleOfficeSearchChange}
+                      onFocus={() => setShowOfficeDropdown(true)}
+                      disabled={loadingOffices}
+                    />
+                    {loadingOffices && (
+                      <p className="mt-1 text-xs text-gray-500">Loading offices...</p>
+                    )}
+                    
+                    {showOfficeDropdown && filteredOffices.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                        <div className="px-3 py-2 bg-gray-100 border-b border-gray-300">
+                          <span className="text-sm font-medium text-gray-700">Customs Office</span>
+                        </div>
+                        {filteredOffices.map((office) => (
+                          <div
+                            key={office._id}
+                            className="px-3 py-2 cursor-pointer hover:bg-gray-100 border-b border-gray-200 last:border-b-0"
+                            onClick={() => handleOfficeSelect(office.code)}
+                          >
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium">{office.code}</span>
+                              <span className="text-sm text-gray-600">{office.name}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Display selected office */}
+                  {selectedOffice && (
+                    <div className="mt-2 p-2 bg-gray-50 border border-gray-200 rounded-md">
+                      <p className="text-sm text-gray-700">
+                        <span className="font-medium">Selected: </span>
+                        {selectedOffice.code} - {selectedOffice.name}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex justify-end space-x-3">
                   <button
                     type="button"
-                    onClick={() => setShowCreateModal(false)}
+                    onClick={() => {
+                      setShowCreateModal(false);
+                      setNewWarehouse({ name: '', description: '', officeCode: '' });
+                      setSelectedOffice(null);
+                      setOfficeSearchTerm('');
+                    }}
                     className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors duration-200"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    disabled={creating}
+                    disabled={creating || !newWarehouse.officeCode}
                     className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors duration-200"
                   >
                     {creating ? 'Creating...' : 'Create'}

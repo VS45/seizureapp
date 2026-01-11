@@ -6,7 +6,7 @@ import connectDB from '@/lib/db';
 export async function GET(request, { params }) {
   try {
     await connectDB();
-    const { id } = params;
+    const { id } = await params;
     const office = await Office.findById(id);
     
     if (!office) {
@@ -86,7 +86,7 @@ export async function PUT(request, { params }) {
 export async function DELETE(request, { params }) {
   try {
     await connectDB();
-    const { id } = params;
+    const { id } = await params;
 
     // Check if office is in use
     const usersWithOffice = await User.countDocuments({ office: id });
