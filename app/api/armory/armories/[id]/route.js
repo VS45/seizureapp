@@ -8,7 +8,7 @@ export async function GET(request, { params }) {
   try {
     await connectDB();
 
-    const user = await authenticate(request);
+    const {user} = await authenticate(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -22,10 +22,6 @@ export async function GET(request, { params }) {
 
     const { id } = await params; 
     const armory = await Armory.findById(id)
-      .populate('office', 'name code')
-      .populate('createdBy', 'name email')
-      .populate('comments.createdBy', 'name email');
-
     if (!armory) {
       return NextResponse.json({ error: 'Armory not found' }, { status: 404 });
     }

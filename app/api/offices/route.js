@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import Office from '@/models/office';
 import connectDB from '@/lib/db';
 
-// GET - List all offices
+// GET - List all offices api/offices
 export async function GET() {
   try {
     await connectDB();

@@ -17,7 +17,7 @@ const weaponSchema = new Schema({
   lastMaintenance: { type: Date },
   nextMaintenance: { type: Date },
   notes: { type: String }
-}, { _id: true });
+});
 
 // Schema for ammunition
 const ammunitionSchema = new Schema({
@@ -28,7 +28,7 @@ const ammunitionSchema = new Schema({
   lotNumber: { type: String },
   manufactureDate: { type: Date },
   expiryDate: { type: Date }
-}, { _id: true });
+});
 
 // Schema for protective equipment
 const equipmentSchema = new Schema({
@@ -43,7 +43,7 @@ const equipmentSchema = new Schema({
   serialNumber: { type: String },
   certificationDate: { type: Date },
   expiryDate: { type: Date }
-}, { _id: true });
+});
 
 // Schema for comment/operation log entries
 const commentSchema = new Schema({
@@ -52,7 +52,7 @@ const commentSchema = new Schema({
   updatedBy: { type: String, required: true },
   updatedById: { type: String, required: true },
   timestamp: { type: Date, required: true, default: Date.now }
-}, { _id: false });
+});
 
 const armorySchema = new Schema({
   // Reference Information

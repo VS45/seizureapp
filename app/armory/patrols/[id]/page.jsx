@@ -62,7 +62,7 @@ export default function PatrolDetailPage() {
       const response = await fetch(`/api/patrols/${id}`)
       if (response.ok) {
         const data = await response.json()
-        setPatrol(data)
+        setPatrol(data.patrol)
       } else {
         console.error('Failed to fetch patrol')
       }
@@ -158,7 +158,7 @@ export default function PatrolDetailPage() {
       <div className="text-center py-8">
         <h1 className="text-2xl font-bold text-gray-900">Patrol team not found</h1>
         <button
-          onClick={() => router.push('/patrols')}
+          onClick={() => router.push('/armory/patrols')}
           className="mt-4 text-blue-600 hover:text-blue-700"
         >
           Back to Patrol Teams

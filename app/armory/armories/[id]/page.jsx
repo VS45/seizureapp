@@ -61,6 +61,7 @@ export default function ArmoryDetailPage() {
       const response = await fetch(`/api/armory/armories/${id}`)
       if (response.ok) {
         const data = await response.json()
+        console.log('Fetched armory:', data);
         setArmory(data.armory)
       } else {
         console.error('Failed to fetch armory')
@@ -173,7 +174,7 @@ export default function ArmoryDetailPage() {
         </div>
         <div className="flex items-center space-x-3">
           <button
-            onClick={() => router.push(`/distributions/create?armoryId=${id}`)}
+            onClick={() => router.push(`/armory/distributions/create?armoryId=${id}`)}
             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             <Plus className="w-4 h-4 mr-2" />

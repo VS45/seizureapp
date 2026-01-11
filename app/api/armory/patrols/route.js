@@ -8,13 +8,12 @@ import Office from '@/models/office';
 export async function GET(request) {
   try {
     await connectDB();
-    const user = await authenticate(request);
-    console.log('Authenticated user:', user);
+    const {user} = await authenticate(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
      if (user.role !== "admin" && user.role !== "armourer") {
+      console.log('User role insufficient:', user.role);
             return NextResponse.json(
               { error: "Insufficient permissions to access armory data" },
               { status: 403 }
@@ -101,7 +100,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     await connectDB();
-    const user = await authenticate(request);
+    const {user} = await authenticate(request);
     
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -167,9 +166,7 @@ export async function POST(request) {
       { status: 201 }
     );
   } catch (error) {
-    console.error('POST /api/patrols error:', error);
-    
-    if (error.code === 11000) {
+   if (error.code === 11000) {
       return NextResponse.json(
         { error: 'Patrol team code already exists' },
         { status: 409 } // Changed to 409 Conflict for consistency

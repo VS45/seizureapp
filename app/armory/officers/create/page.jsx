@@ -62,16 +62,19 @@ export default function CreateOfficerPage() {
     try {
       const [officesRes, patrolsRes] = await Promise.all([
         fetch('/api/offices'),
-        fetch('/api/patrols')
+        fetch('/api/armory/patrols')
       ]);
-
+console.log('Offices response:', officesRes);
+      console.log('Patrols response:', patrolsRes);
       if (officesRes.ok) {
         const officesData = await officesRes.json();
-        setOffices(officesData.offices || []);
+        console.log('Fetched offices:', officesData);
+        setOffices(officesData|| []);
       }
 
       if (patrolsRes.ok) {
         const patrolsData = await patrolsRes.json();
+        console.log('Fetched patrols:', patrolsData);
         setPatrols(patrolsData.patrols || []);
       }
     } catch (error) {
@@ -101,14 +104,14 @@ export default function CreateOfficerPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/officers', {
+      const response = await fetch('/api/armory/officers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
 
       if (response.ok) {
-        router.push('/officers');
+        router.push('/armory/officers');
       } else {
         const error = await response.json();
         alert(`Failed to create officer: ${error.error}`);
@@ -247,12 +250,24 @@ export default function CreateOfficerPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">Select Rank</option>
-              <option value="Constable">Constable</option>
-              <option value="Corporal">Corporal</option>
-              <option value="Sergeant">Sergeant</option>
-              <option value="Inspector">Inspector</option>
-              <option value="Chief Inspector">Chief Inspector</option>
-              <option value="Superintendent">Superintendent</option>
+              <option value="CGC">CGC</option>
+              <option value="DCG">DCG</option>
+              <option value="ACG">ACG</option>
+              <option value="CC">CC</option>
+              <option value="DC">DC</option>
+              <option value="AC">AC</option>
+              <option value="CSC">CSC</option>
+              <option value="SC">SC</option>
+              <option value="DSC">DSC</option>
+              <option value="ASC I">ASC I</option>
+              <option value="ASC II">ASC II</option>
+              <option value="PIC">PIC</option>
+              <option value="SIC">SIC</option>
+              <option value="IC">IC</option>
+              <option value="AIC">AIC</option>
+              <option value="CA I">CA I</option>
+              <option value="CA II">CA II</option>
+              <option value="CA III">CA III</option>
               <option value="Chief Superintendent">Chief Superintendent</option>
             </select>
           </div>
@@ -343,6 +358,7 @@ export default function CreateOfficerPage() {
                   {patrol.name} ({patrol.code})
                 </option>
               ))}
+              <option value="other">Other</option>
             </select>
           </div>
 

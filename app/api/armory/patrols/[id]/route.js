@@ -7,7 +7,7 @@ import Office from '@/models/office';
 export async function PUT(request, { params }) {
   try {
     await connectDB();
-    const user = await authenticate(request);
+    const {user} = await authenticate(request);
     
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

@@ -9,7 +9,7 @@ import connectDB from '@/lib/db';
 export async function GET(request) {
   try {
     await connectDB();
-    const user = await authenticate(request);
+    const {user} = await authenticate(request);
     
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -84,19 +84,34 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     await connectDB();
-    const user = await authenticate(request);
+    const { user } = await authenticate(request);
+    console.log('Authenticated user:', user);
     
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(user, 'create', 'armories')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (user.role !== "admin" && user.role !== "armourer") {
+      return NextResponse.json(
+        { error: "Insufficient permissions to create armory" },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();
+    console.log('Received armory data:', body);
     
-    const validationResult = armorySchema.safeParse(body);
+    // Transform office object to string (ObjectId) for validation
+    const transformedBody = {
+      ...body,
+      office: body.office?._id || body.office // Use _id if object, otherwise use string
+    };
+    
+    console.log('Transformed data for validation:', transformedBody);
+    
+    const validationResult = armorySchema.safeParse(transformedBody);
+    console.log('Validation result:', validationResult);
+    
     if (!validationResult.success) {
       return NextResponse.json(
         { error: 'Validation failed', details: validationResult.error.issues },
@@ -104,32 +119,50 @@ export async function POST(request) {
       );
     }
 
-    // Verify office exists and belongs to same unit for non-admins
-    const office = await Office.findById(body.office);
+    // Verify office exists
+    const office = await Office.findById(transformedBody.office);
     if (!office) {
       return NextResponse.json({ error: 'Office not found' }, { status: 404 });
     }
 
-    if (user.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Office does not belong to your unit' },
-        { status: 403 }
-      );
-    }
+    // Generate reference ID (use provided one or generate new)
+   // const referenceID = body.referenceID || `AR-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
 
-    // Generate reference ID
-    const referenceID = `AR-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
-
+    // Create armory with defaults for required fields
     const armory = new Armory({
       ...validationResult.data,
-      referenceID,
-      unit: user.unit,
-      createdBy: user.id
+      referenceID: body.referenceID, 
+      office: office._id,
+      unit: validationResult.data.unit || user.unit, // Use provided unit or user's unit
+      // Provide default current custodian (could be the creator)
+      currentCustodian: {
+        serviceNo: user.serviceNo || 'N/A', // Provide default or from user
+        rank: user.rank || 'Officer', // Provide default or from user
+        name: user.name,
+        takeoverDate: new Date()
+      },
+      createdBy: user._id,
+      createdByName: body.createdByName || user.name,
+      // Optional: Store office details
+      officeDetails: {
+        name: office.name,
+        code: office.code,
+        location: office.location || ''
+      },
+      // Set default status if not provided
+      status: validationResult.data.status || 'active',
+      // Initialize empty arrays for optional fields
+      weapons: validationResult.data.weapons || [],
+      ammunition: validationResult.data.ammunition || [],
+      equipment: validationResult.data.equipment || [],
+      otherItems: [],
+      accessCodes: validationResult.data.accessCodes || [],
+      comments: validationResult.data.comments || [],
+      // Set default security level
+      securityLevel: 'medium'
     });
 
     await armory.save();
-    await armory.populate('office', 'name code location');
-
     return NextResponse.json(armory, { status: 201 });
   } catch (error) {
     console.error('POST /api/armories error:', error);
@@ -142,7 +175,7 @@ export async function POST(request) {
     }
 
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error.message },
       { status: 500 }
     );
   }

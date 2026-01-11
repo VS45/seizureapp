@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Save, Users } from 'lucide-react'
+import { ArrowLeft,Users } from 'lucide-react'
 
 export default function CreatePatrolPage() {
   const router = useRouter()
@@ -62,7 +62,7 @@ export default function CreatePatrolPage() {
 
       if (officesRes.ok) {
         const officesData = await officesRes.json()
-        setOffices(officesData.offices)
+        setOffices(officesData)
       }
 
       if (officersRes.ok) {

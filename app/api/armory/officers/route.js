@@ -9,7 +9,7 @@ import Office from '@/models/office';
 export async function GET(request) {
   try {
     await connectDB();
-    const user = await authenticate(request);
+    const {user} = await authenticate(request);
     
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -85,7 +85,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     await connectDB();
-    const user = await authenticate(request);
+    const {user} = await authenticate(request);
     
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

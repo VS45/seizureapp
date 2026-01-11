@@ -356,7 +356,7 @@ export default function CreateDistributionPage() {
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No Armories Available</h3>
                   <p className="text-gray-500 mb-4">No armories found in the system.</p>
                   <button
-                    onClick={() => router.push('/armories/create')}
+                    onClick={() => router.push('/armory/armories/create')}
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     Create Armory
@@ -413,7 +413,7 @@ export default function CreateDistributionPage() {
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No Officers Available</h3>
                   <p className="text-gray-500 mb-4">No officers found in the system.</p>
                   <button
-                    onClick={() => router.push('/officers/create')}
+                    onClick={() => router.push('/armory/officers/create')}
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     Create Officer

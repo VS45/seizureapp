@@ -54,9 +54,10 @@ export default function OfficersPage() {
   const fetchOfficers = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/officers')
+      const response = await fetch('/api/armory/officers')
       if (response.ok) {
         const data = await response.json()
+        console.log('Fetched officers data:', data);
         setOfficers(data.officers || [])
       } else {
         console.error('Failed to fetch officers')

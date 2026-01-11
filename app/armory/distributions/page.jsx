@@ -299,7 +299,7 @@ export default function DistributionsPage() {
           {/* Only show create button for admin and armourer */}
           {user.role !== 'officer' && (
             <button
-              onClick={() => router.push('/distributions/create')}
+              onClick={() => router.push('/armory/distributions/create')}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
             >
               <Plus className="w-5 h-5" />

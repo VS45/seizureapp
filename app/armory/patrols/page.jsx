@@ -57,6 +57,7 @@ export default function PatrolsPage() {
       const response = await fetch('/api/armory/patrols')
       if (response.ok) {
         const data = await response.json()
+console.log('Patrols data:', data.patrols)
         setPatrols(data.patrols || [])
       } else {
         console.error('Failed to fetch patrols')

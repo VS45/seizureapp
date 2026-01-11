@@ -44,7 +44,7 @@ export function ArmoryTable({ armories }) {
               <td className="px-6 py-4 whitespace-nowrap">
                 <div>
                   <Link 
-                    href={`/armories/${armory._id}`}
+                    href={`/armory/armories/${armory._id}`}
                     className="text-sm font-medium text-blue-600 hover:text-blue-900"
                   >
                     {armory.armoryName}
@@ -80,13 +80,13 @@ export function ArmoryTable({ armories }) {
               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div className="flex items-center justify-end space-x-2">
                   <Link
-                    href={`/armories/${armory._id}`}
+                    href={`/armory/armories/${armory._id}`}
                     className="text-blue-600 hover:text-blue-900 p-1"
                   >
                     <Eye className="w-4 h-4" />
                   </Link>
                   <Link
-                    href={`/armories/${armory._id}/manage-inventory`}
+                    href={`/armory/armories/${armory._id}/manage-inventory`}
                     className="text-blue-600 hover:text-blue-900 p-1"
                   >
                     inventory
