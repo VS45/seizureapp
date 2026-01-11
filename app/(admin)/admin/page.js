@@ -107,7 +107,7 @@ export default function AdminDashboard() {
         <div className="px-6 py-5 border-b border-gray-200">
           <h3 className="text-lg font-medium text-gray-800">Quick Actions</h3>
         </div>
-        <div className="p-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="p-6 grid grid-cols-2 gap-4 sm:grid-cols-2">
           <Link
             href="/admin/checkpoints"
             className="flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors duration-200"
