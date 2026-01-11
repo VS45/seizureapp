@@ -52,7 +52,7 @@ export default function OfficesPage() {
   const fetchOffices = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/armory/offices')
+      const response = await fetch('/api/offices')
       if (response.ok) {
         const data = await response.json()
         setOffices(data.offices || [])

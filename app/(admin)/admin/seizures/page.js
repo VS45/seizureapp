@@ -224,7 +224,7 @@ export default function SeizuresDashboard() {
         </div>
 
         {/* Stats Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-4 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-white p-4 rounded-lg shadow-md">
             <h3 className="text-sm font-medium text-gray-600">Total Seizures</h3>
             <p className="text-2xl font-bold text-gray-800">{seizures.length}</p>
