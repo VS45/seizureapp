@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Shield, Globe, Users, Database, BarChart, Lock, FileText, Network, Target, AlertTriangle, CheckCircle, ArrowRight, Menu, X, Zap } from 'lucide-react';
+import Image from 'next/image';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -24,6 +25,14 @@ export default function LandingPage() {
       description: "Seamlessly connect with 184 WCO member countries for instant intelligence sharing, coordinated operations, and international enforcement collaboration.",
       bgColor: "from-blue-900/30 via-gray-900/50 to-purple-900/30",
       image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80",
+      icon: <Network className="h-12 w-12" />
+    },
+    {
+      title: "Real-time Intelligence Sharing",
+      subtitle: "Global Network Integration",
+      description: "Seamlessly connect with 184 WCO member countries for instant intelligence sharing, coordinated operations, and international enforcement collaboration.",
+      bgColor: "from-blue-900/30 via-gray-900/50 to-purple-900/30",
+      image: "/images/slide-bg.jpg",
       icon: <Network className="h-12 w-12" />
     },
     {
@@ -97,21 +106,18 @@ export default function LandingPage() {
   return (
     <div className="bg-gray-900 min-h-screen">
       {/* Header */}
-      <header className="fixed inset-x-0 top-0 z-50 bg-gray-900/90 backdrop-blur-md border-b border-gray-800">
+      <header className="fixed inset-x-0 top-0 z-50 bg-gray-500/90 backdrop-blur-md border-b border-gray-800">
         <nav className="flex items-center justify-between p-6 lg:px-8" aria-label="Global">
           <div className="flex lg:flex-1">
             <div className="flex items-center space-x-3">
               <div className="relative">
-                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-700 rounded-xl flex items-center justify-center">
-                  <Shield className="h-6 w-6 text-white" />
-                </div>
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-white border-2 border-green-500 flex items-center justify-center">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
-                </div>
+        
+                <Image src="/images/logo.png" alt="nCEN Logo" width={70} height={90} className="w-10 h-10"/>
+                
               </div>
               <div>
                 <span className="text-xl font-bold text-white">nCEN</span>
-                <span className="block text-xs text-green-400 font-medium">WCO-CEN Extension</span>
+                <span className="block text-xl text-green-400 font-large">NCS Enforcement Network</span>
               </div>
             </div>
           </div>
@@ -142,17 +148,17 @@ export default function LandingPage() {
           </div>
           
           <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:gap-x-4">
-            <button
+          {/*   <button
               onClick={() => router.push('/login')}
               className="text-sm font-semibold leading-6 text-white px-4 py-2 hover:bg-white/10 rounded-lg transition-colors"
             >
               Officer Login
-            </button>
+            </button> */}
             <button
-              onClick={() => router.push('/register')}
+              onClick={() => router.push('/login')}
               className="text-sm font-semibold leading-6 text-white bg-gradient-to-r from-green-600 to-green-700 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition-all"
             >
-              Request Access
+              Login
             </button>
           </div>
         </nav>
