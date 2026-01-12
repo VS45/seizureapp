@@ -13,7 +13,7 @@ export default function CreatorLayout({ children }) {
     const navItems = [
         { name: 'Dashboard', href: '/creator/dashboard', icon: <FiHome size={20} /> },
         { name: 'Seizures', href: '/creator/seizures', icon: <FiFileText size={20} /> },
-        { name: 'Charts', href: '/creator/reports/charts', icon: <FiPieChart size={20} /> },
+      /*   { name: 'Charts', href: '/creator/reports/charts', icon: <FiPieChart size={20} /> }, */
         { name: 'Create Seizure', href: '/creator/seizures/create', icon: <FiFileText size={20} /> },
     ]
 
