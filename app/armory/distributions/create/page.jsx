@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Save, Package, Search, Plus, Minus, Shield } from 'lucide-react';
+import { ArrowLeft, Save, Package, Plus, Minus, Shield } from 'lucide-react';
 
 export default function CreateDistributionPage() {
   const router = useRouter();
@@ -544,7 +544,7 @@ export default function CreateDistributionPage() {
                             </div>
                           </div>
                           <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded-lg font-medium">
-                            {weapon.availableQuantity} available
+                            {weapon.quantity} available
                           </span>
                         </div>
                         

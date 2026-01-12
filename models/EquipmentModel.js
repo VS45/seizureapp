@@ -1,16 +1,9 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
-const weaponModelSchema = new mongoose.Schema({
-  weaponType: {
+const equipmentModelSchema = new mongoose.Schema({
+  itemType: {
     type: String,
     required: true
-  },
-  model: {
-    type: String,
-    required: true
-  },
-  manufacturer: {
-    type: String
   },
   status: {
     type: String,
@@ -26,7 +19,6 @@ const weaponModelSchema = new mongoose.Schema({
     default: Date.now
   }
 });
-// Check if model already exists before creating
-const WeaponModel = mongoose.models.WeaponModel || mongoose.model('WeaponModel', weaponModelSchema);
+const EquipmentModel = mongoose.models.EquipmentModel || mongoose.model('EquipmentModel', equipmentModelSchema);
 
-export default WeaponModel;
+export default EquipmentModel;

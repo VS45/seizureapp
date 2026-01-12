@@ -81,8 +81,8 @@ export default function DistributionDetailPage() {
 
     try {
       setReturnLoading(true);
-      const response = await fetch(`/api/armory/distributions/${distributionId}`, {
-        method: 'PUT',
+      const response = await fetch(`/api/armory/distributions/${distributionId}/return-all`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
