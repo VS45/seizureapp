@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Shield, Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import Image from 'next/image';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -57,11 +58,12 @@ export default function LoginForm() {
             <div className="mb-4 flex justify-center">
               <div className="relative w-20 h-20 bg-white rounded-full p-3 shadow-lg border-4 border-green-600">
                 <div className="w-full h-full rounded-full bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center">
-                  <Shield className="w-10 h-10 text-white" />
+                     <Image src="/images/logo.png" alt="nCEN Logo" width={70} height={90} className="w-10 h-10"/>
+                                  
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white border-2 border-green-600 flex items-center justify-center">
+                {/* <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white border-2 border-green-600 flex items-center justify-center">
                   <div className="w-4 h-4 rounded-full bg-green-600"></div>
-                </div>
+                </div> */}
               </div>
             </div>
             
