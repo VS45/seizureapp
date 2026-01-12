@@ -42,7 +42,7 @@ export async function PATCH(request, { params }) {
     await connectDB();
 
     // Authenticate user
-    const user = await authenticate(request);
+    const {user} = await authenticate(request);
     if (!user) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -150,13 +150,7 @@ export async function PATCH(request, { params }) {
         context: 'query'
       }
     )
-      .populate('office', 'name code')
-      .populate('createdBy', 'name email')
-      .populate('weapons.createdBy', 'name email')
-      .populate('ammunition.createdBy', 'name email')
-      .populate('equipment.createdBy', 'name email')
-      .populate('comments.createdBy', 'name email');
-
+    
     if (!updatedArmory) {
       return NextResponse.json(
         { error: 'Armory not found after update' },
@@ -247,10 +241,6 @@ export async function PUT(request, { params }) {
       { ...body, updatedAt: new Date() },
       { new: true, runValidators: true }
     )
-      .populate('office', 'name code location unit')
-      .populate('createdBy', 'name email')
-      .populate('comments.createdBy', 'name email');
-
     if (!updatedArmory) {
       return NextResponse.json({ error: 'Armory not found' }, { status: 404 });
     }
@@ -282,7 +272,7 @@ export async function DELETE(request, { params }) {
   try {
     await connectDB();
 
-    const user = await authenticate(request);
+    const {user} = await authenticate(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
