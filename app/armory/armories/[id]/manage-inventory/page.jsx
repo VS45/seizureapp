@@ -14,11 +14,11 @@ import {
   ChevronDown,
   ChevronUp,
   Crosshair,
-  Key,
-  Building,
-  MapPin,
-  Users
+  Building
 } from 'lucide-react'
+
+// Ammunition types constant
+const AMMUNITION_TYPES = ['FMJ', 'HP', 'Tracer', 'AP', 'Frangible', 'Other'];
 
 export default function ManageArmoryInventoryPage() {
   const router = useRouter()
@@ -38,18 +38,23 @@ export default function ManageArmoryInventoryPage() {
   })
 
   // State for dropdown data
-  const [weaponModels, setWeaponModels] = useState({})
+  const [weaponModels, setWeaponModels] = useState([])
   const [ammunitionData, setAmmunitionData] = useState({ 
     calibers: [], 
     types: [],
-    ammunitionModels: []
+    ammunitionModels: [],
+    groupedModels: {}
   })
-  const [equipmentModels, setEquipmentModels] = useState({})
+  const [equipmentModels, setEquipmentModels] = useState([])
   
   // State for new items to be added
   const [newWeapons, setNewWeapons] = useState([])
   const [newAmmunition, setNewAmmunition] = useState([])
   const [newEquipment, setNewEquipment] = useState([])
+
+  // State for ammunition selection
+  const [manufacturerOptions, setManufacturerOptions] = useState({})
+  const [descriptionMap, setDescriptionMap] = useState({})
 
   const fetchUserData = async () => {
     try {
@@ -108,21 +113,62 @@ export default function ManageArmoryInventoryPage() {
       const weaponResponse = await fetch('/api/armory/weapon-models')
       if (weaponResponse.ok) {
         const weaponData = await weaponResponse.json()
-        setWeaponModels(weaponData.weaponModels||[])
+        setWeaponModels(weaponData.weaponModels || [])
       }
 
-      // Fetch ammunition data
-      const ammoResponse = await fetch('/api/armory/ammunition-models')
+      // Fetch ammunition data with status=active
+      const ammoResponse = await fetch('/api/armory/ammunition-models?status=active')
       if (ammoResponse.ok) {
         const ammoData = await ammoResponse.json()
-        setAmmunitionData(ammoData.ammonitions||[])
+        
+        // Extract unique calibers and types
+        const calibers = ammoData.calibers || Array.from(new Set(ammoData.ammunitionModels?.map(model => model.caliber) || []))
+        const types = ammoData.types || Array.from(new Set(ammoData.ammunitionModels?.map(model => model.type) || []))
+        
+        // Build manufacturer options map
+        const manufacturerMap = {}
+        const descMap = {}
+        
+        if (ammoData.groupedModels) {
+          Object.keys(ammoData.groupedModels).forEach(caliber => {
+            ammoData.groupedModels[caliber].forEach(model => {
+              if (!manufacturerMap[caliber]) {
+                manufacturerMap[caliber] = []
+              }
+              if (!manufacturerMap[caliber].includes(model.manufacturer)) {
+                manufacturerMap[caliber].push(model.manufacturer)
+              }
+              descMap[`${caliber}_${model.manufacturer}`] = model.description || ''
+            })
+          })
+        } else {
+          // Fallback: group by caliber and manufacturer
+          ammoData.ammunitionModels?.forEach(model => {
+            if (!manufacturerMap[model.caliber]) {
+              manufacturerMap[model.caliber] = []
+            }
+            if (!manufacturerMap[model.caliber].includes(model.manufacturer)) {
+              manufacturerMap[model.caliber].push(model.manufacturer)
+            }
+            descMap[`${model.caliber}_${model.manufacturer}`] = model.description || ''
+          })
+        }
+        
+        setAmmunitionData({
+          calibers: calibers.sort(),
+          types: types.sort(),
+          ammunitionModels: ammoData.ammunitionModels || [],
+          groupedModels: ammoData.groupedModels || {}
+        })
+        setManufacturerOptions(manufacturerMap)
+        setDescriptionMap(descMap)
       }
 
       // Fetch equipment models
       const equipmentResponse = await fetch('/api/armory/equipment-models')
       if (equipmentResponse.ok) {
         const equipmentData = await equipmentResponse.json()
-        setEquipmentModels(equipmentData.equipmentModels)
+        setEquipmentModels(equipmentData.equipmentModels || [])
       }
     } catch (error) {
       console.error('Error fetching dropdown data:', error)
@@ -187,9 +233,7 @@ export default function ManageArmoryInventoryPage() {
   const updateNewWeapon = async (index, field, value) => {
     const updatedWeapons = [...newWeapons]
     updatedWeapons[index] = { ...updatedWeapons[index], [field]: value }
-    setNewWeapons(updatedWeapons)
-
-    // If weapon type or manufacturer changes, fetch available quantity
+    
     if (field === 'weaponType' || field === 'manufacturer') {
       const weapon = updatedWeapons[index]
       if (weapon.weaponType && weapon.manufacturer) {
@@ -204,11 +248,9 @@ export default function ManageArmoryInventoryPage() {
           availableQuantity: weapon.quantity + availableQuantity,
           existingItem: existingItem
         }
-        setNewWeapons([...updatedWeapons])
       }
     }
 
-    // Update available quantity when quantity changes
     if (field === 'quantity') {
       const weapon = updatedWeapons[index]
       const existingAvailable = weapon.existingAvailable || 0
@@ -217,8 +259,9 @@ export default function ManageArmoryInventoryPage() {
         quantity: parseInt(value) || 1,
         availableQuantity: (parseInt(value) || 1) + existingAvailable
       }
-      setNewWeapons([...updatedWeapons])
     }
+    
+    setNewWeapons([...updatedWeapons])
   }
 
   const removeNewWeapon = (index) => {
@@ -230,11 +273,13 @@ export default function ManageArmoryInventoryPage() {
     const newAmmo = {
       caliber: '',
       type: '',
+      manufacturer: '',
       quantity: 0,
       unit: 'rounds',
       lotNumber: '',
       manufactureDate: new Date().toISOString().split('T')[0],
-      expiryDate: ''
+      expiryDate: '',
+      description: ''
     }
     setNewAmmunition(prev => [...prev, newAmmo])
   }
@@ -242,15 +287,36 @@ export default function ManageArmoryInventoryPage() {
   const updateNewAmmunition = async (index, field, value) => {
     const updatedAmmunition = [...newAmmunition]
     updatedAmmunition[index] = { ...updatedAmmunition[index], [field]: value }
+    
+    // If caliber changes, reset manufacturer and description
+    if (field === 'caliber') {
+      updatedAmmunition[index] = {
+        ...updatedAmmunition[index],
+        manufacturer: '',
+        description: ''
+      }
+    }
+    
+    // If manufacturer changes, update description
+    if (field === 'manufacturer') {
+      const ammo = updatedAmmunition[index]
+      const descriptionKey = `${ammo.caliber}_${value}`
+      updatedAmmunition[index] = {
+        ...ammo,
+        description: descriptionMap[descriptionKey] || ''
+      }
+    }
+    
     setNewAmmunition(updatedAmmunition)
 
-    // If caliber or type changes, fetch available quantity
-    if (field === 'caliber' || field === 'type') {
+    // If caliber, type, or manufacturer changes, fetch available quantity
+    if (field === 'caliber' || field === 'type' || field === 'manufacturer') {
       const ammo = updatedAmmunition[index]
-      if (ammo.caliber && ammo.type) {
+      if (ammo.caliber && ammo.type && ammo.manufacturer) {
         const { availableQuantity, existingItem } = await fetchAvailableQuantity('ammunition', {
           caliber: ammo.caliber,
-          ammoType: ammo.type
+          ammoType: ammo.type,
+          manufacturer: ammo.manufacturer
         })
         
         updatedAmmunition[index] = {
@@ -282,7 +348,7 @@ export default function ManageArmoryInventoryPage() {
 
   // Equipment Management
   const addNewEquipment = () => {
-    const newEquipment = {
+    const newEquipmentItem = {
       itemType: '',
       size: '',
       quantity: 1,
@@ -291,7 +357,7 @@ export default function ManageArmoryInventoryPage() {
       certificationDate: new Date().toISOString().split('T')[0],
       expiryDate: ''
     }
-    setNewEquipment(prev => [...prev, newEquipment])
+    setNewEquipment(prev => [...prev, newEquipmentItem])
   }
 
   const updateNewEquipment = async (index, field, value) => {
@@ -299,7 +365,6 @@ export default function ManageArmoryInventoryPage() {
     updatedEquipment[index] = { ...updatedEquipment[index], [field]: value }
     setNewEquipment(updatedEquipment)
 
-    // If equipment type changes, fetch available quantity
     if (field === 'itemType') {
       const equip = updatedEquipment[index]
       if (equip.itemType) {
@@ -317,7 +382,6 @@ export default function ManageArmoryInventoryPage() {
       }
     }
 
-    // Update available quantity when quantity changes
     if (field === 'quantity') {
       const equip = updatedEquipment[index]
       const existingAvailable = equip.existingAvailable || 0
@@ -344,7 +408,7 @@ export default function ManageArmoryInventoryPage() {
 
     // Validate required fields
     const hasInvalidWeapon = newWeapons.some(weapon => !weapon.weaponType || !weapon.serialNumber || !weapon.manufacturer || weapon.quantity <= 0)
-    const hasInvalidAmmo = newAmmunition.some(ammo => !ammo.caliber || !ammo.type || ammo.quantity <= 0)
+    const hasInvalidAmmo = newAmmunition.some(ammo => !ammo.caliber || !ammo.type || !ammo.manufacturer || ammo.quantity <= 0)
     const hasInvalidEquipment = newEquipment.some(equip => !equip.itemType || equip.quantity <= 0)
 
     if (hasInvalidWeapon || hasInvalidAmmo || hasInvalidEquipment) {
@@ -367,11 +431,13 @@ export default function ManageArmoryInventoryPage() {
         ammunition: newAmmunition.map(a => ({
           caliber: a.caliber,
           type: a.type,
+          manufacturer: a.manufacturer,
           quantity: a.quantity,
           unit: a.unit,
           lotNumber: a.lotNumber,
           manufactureDate: a.manufactureDate,
-          expiryDate: a.expiryDate
+          expiryDate: a.expiryDate,
+          description: a.description
         })),
         equipment: newEquipment.map(e => ({
           itemType: e.itemType,
@@ -384,7 +450,7 @@ export default function ManageArmoryInventoryPage() {
         }))
       }
 
-      const response = await fetch(`/api/armories/${armoryId}`, {
+      const response = await fetch(`/api/armory/armories/${armoryId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updateData)
@@ -403,6 +469,16 @@ export default function ManageArmoryInventoryPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  // Get manufacturer options for selected caliber
+  const getManufacturerOptions = (caliber) => {
+    return manufacturerOptions[caliber] || []
+  }
+
+  // Get available types for ammunition
+  const getTypeOptions = () => {
+    return ammunitionData.types.length > 0 ? ammunitionData.types : AMMUNITION_TYPES
   }
 
   // Show authentication loading state
@@ -461,7 +537,7 @@ export default function ManageArmoryInventoryPage() {
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Armory Not Found</h2>
         <p className="text-gray-600 mb-6">The armory you're looking for doesn't exist.</p>
         <button
-          onClick={() => router.push('/armories')}
+          onClick={() => router.push('/armory/armories')}
           className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
         >
           Back to Armories
@@ -471,7 +547,7 @@ export default function ManageArmoryInventoryPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6 p-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
@@ -599,8 +675,8 @@ export default function ManageArmoryInventoryPage() {
                             required
                           >
                             <option value="">Select Weapon Type</option>
-                            {Object.keys(weaponModels).map(type => (
-                              <option key={type} value={type}>{type}</option>
+                            {weaponModels.map((model, idx) => (
+                              <option key={idx} value={model.weaponType || model.type}>{model.weaponType || model.type}</option>
                             ))}
                           </select>
                         </div>
@@ -617,11 +693,13 @@ export default function ManageArmoryInventoryPage() {
                             disabled={!weapon.weaponType}
                           >
                             <option value="">Select Model</option>
-                            {weapon.weaponType && weaponModels[weapon.weaponType]?.map(model => (
-                              <option key={model.id} value={model.manufacturer}>
-                                {model.manufacturer} ({model.caliber})
-                              </option>
-                            ))}
+                            {weapon.weaponType && weaponModels
+                              .filter(model => (model.weaponType || model.type) === weapon.weaponType)
+                              .map((model, idx) => (
+                                <option key={idx} value={model.manufacturer}>
+                                  {model.manufacturer}
+                                </option>
+                              ))}
                           </select>
                         </div>
 
@@ -769,6 +847,7 @@ export default function ManageArmoryInventoryPage() {
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {/* Caliber Dropdown */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             Caliber *
@@ -786,6 +865,7 @@ export default function ManageArmoryInventoryPage() {
                           </select>
                         </div>
 
+                        {/* Type Dropdown */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             Type *
@@ -797,12 +877,39 @@ export default function ManageArmoryInventoryPage() {
                             required
                           >
                             <option value="">Select Type</option>
-                            {ammunitionData.types.map(type => (
+                            {getTypeOptions().map(type => (
                               <option key={type} value={type}>{type}</option>
                             ))}
                           </select>
                         </div>
 
+                        {/* Manufacturer Dropdown */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Manufacturer *
+                          </label>
+                          <select
+                            value={ammo.manufacturer}
+                            onChange={(e) => updateNewAmmunition(index, 'manufacturer', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            required
+                            disabled={!ammo.caliber}
+                          >
+                            <option value="">Select Manufacturer</option>
+                            {ammo.caliber && getManufacturerOptions(ammo.caliber).map(manufacturer => (
+                              <option key={manufacturer} value={manufacturer}>
+                                {manufacturer}
+                              </option>
+                            ))}
+                          </select>
+                          {ammo.caliber && getManufacturerOptions(ammo.caliber).length === 0 && (
+                            <p className="text-xs text-red-500 mt-1">
+                              No manufacturers found for this caliber
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Lot Number */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Lot Number</label>
                           <input
@@ -814,6 +921,7 @@ export default function ManageArmoryInventoryPage() {
                           />
                         </div>
 
+                        {/* Existing Available */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Existing Available</label>
                           <input
@@ -824,6 +932,7 @@ export default function ManageArmoryInventoryPage() {
                           />
                         </div>
 
+                        {/* Quantity to Add */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             Quantity to Add *
@@ -838,6 +947,7 @@ export default function ManageArmoryInventoryPage() {
                           />
                         </div>
 
+                        {/* Total Available Quantity */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Total Available Quantity</label>
                           <input
@@ -848,6 +958,7 @@ export default function ManageArmoryInventoryPage() {
                           />
                         </div>
 
+                        {/* Unit */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
                           <select
@@ -856,10 +967,12 @@ export default function ManageArmoryInventoryPage() {
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                           >
                             <option value="rounds">Rounds</option>
-                           
+                            <option value="boxes">Boxes</option>
+                            <option value="cases">Cases</option>
                           </select>
                         </div>
 
+                        {/* Manufacture Date */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Manufacture Date</label>
                           <input
@@ -870,6 +983,7 @@ export default function ManageArmoryInventoryPage() {
                           />
                         </div>
 
+                        {/* Expiry Date */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date</label>
                           <input
@@ -877,6 +991,18 @@ export default function ManageArmoryInventoryPage() {
                             value={ammo.expiryDate || ''}
                             onChange={(e) => updateNewAmmunition(index, 'expiryDate', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+
+                        {/* Description */}
+                        <div className="md:col-span-3">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                          <textarea
+                            value={ammo.description || ''}
+                            readOnly
+                            rows={2}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                            placeholder="Description will auto-populate based on caliber and manufacturer selection"
                           />
                         </div>
                       </div>
@@ -954,14 +1080,8 @@ export default function ManageArmoryInventoryPage() {
                             required
                           >
                             <option value="">Select Equipment Type</option>
-                            {Object.keys(equipmentModels).map(category => (
-                              <optgroup key={category} label={category}>
-                                {equipmentModels[category]?.map(item => (
-                                  <option key={item.id} value={item.itemType}>
-                                    {item.itemType}
-                                  </option>
-                                ))}
-                              </optgroup>
+                            {equipmentModels.map((item, idx) => (
+                              <option key={idx} value={item.itemType}>{item.itemType}</option>
                             ))}
                           </select>
                         </div>

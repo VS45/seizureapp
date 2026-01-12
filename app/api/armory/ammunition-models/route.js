@@ -40,8 +40,6 @@ export async function GET(request) {
     }
     
     const models = await AmmunitionModel.find(query)
-      .populate('createdBy', 'name email')
-      .populate('updatedBy', 'name email')
       .sort({ caliber: 1, type: 1 })
       .lean();
     
@@ -62,8 +60,6 @@ export async function GET(request) {
           id: model._id,
           type: model.type,
           manufacturer: model.manufacturer,
-          weight: model.weight,
-          packaging: model.packaging,
           description: model.description
         });
         return acc;
@@ -100,13 +96,6 @@ export async function POST(request) {
       caliber,
       type,
       manufacturer,
-      weight,
-      muzzleVelocity,
-      energy,
-      packaging,
-      roundsPerPackage,
-      storageRequirements,
-      shelfLife,
       description
     } = body;
 
@@ -137,13 +126,6 @@ export async function POST(request) {
       caliber,
       type,
       manufacturer,
-      weight,
-      muzzleVelocity,
-      energy,
-      packaging: packaging || 'Box',
-      roundsPerPackage: roundsPerPackage || 20,
-      storageRequirements: storageRequirements || 'Dry',
-      shelfLife,
       description,
       status: 'active',
       createdBy: user._id,
@@ -151,9 +133,6 @@ export async function POST(request) {
     });
 
     await ammunitionModel.save();
-
-    await ammunitionModel.populate('createdBy', 'name email');
-    await ammunitionModel.populate('updatedBy', 'name email');
 
     return NextResponse.json({
       success: true,

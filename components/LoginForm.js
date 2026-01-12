@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Shield, Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import {  Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import Image from 'next/image';
 
 export default function LoginForm() {
@@ -195,10 +195,10 @@ export default function LoginForm() {
                 <p className="text-sm text-gray-600">
                   Need assistance?{' '}
                   <Link 
-                    href="/support" 
+                    href="mailto:abubakar.jauro@customs.gov.ng" 
                     className="font-semibold text-green-600 hover:text-green-500 transition-colors"
-                  >
-                    Contact ICT Support
+                    >
+               Contact Support
                   </Link>
                 </p>
                 <p className="mt-2 text-xs text-gray-500">
