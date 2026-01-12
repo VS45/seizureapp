@@ -89,252 +89,277 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  // Ensure DB connection first
   try {
+    // Connect to database
     await connectDB();
-  } catch (err) {
-    console.error('POST /api/distributions connectDB error:', err);
-    return NextResponse.json({ error: 'Database connection error' }, { status: 500 });
-  }
+    
+    // Authenticate user
+    const { user } = await authenticate(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-  // Authenticate user (after DB connection)
-  const {user} = await authenticate(request);
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-   if (user.role !== "admin" && user.role !== "armourer") {
-         return NextResponse.json(
-           { error: "Insufficient permissions to access armory data" },
-           { status: 403 }
-         );
-       }
+    if (user.role !== "admin" && user.role !== "armourer") {
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 }
+      );
+    }
 
-  // Parse + validate request body
-  let body;
-  try {
-    body = await request.json();
-  } catch (err) {
-    console.error('POST /api/distributions parse body error:', err);
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-  }
+    // Parse request body
+    const body = await request.json();
+    
+    // Validate request body
+    const validationResult = distributionSchema.safeParse(body);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: validationResult.error.issues },
+        { status: 400 }
+      );
+    }
 
-  const validationResult = distributionSchema.safeParse(body);
-  if (!validationResult.success) {
-    return NextResponse.json(
-      { error: 'Validation failed', details: validationResult.error.issues },
-      { status: 400 }
-    );
-  }
+    const { armoryId, officerId, weapons = [], ammunition = [], equipment = [], ...data } = validationResult.data;
 
-  const { armoryId, officerId, weapons = [], ammunition = [], equipment = [], ...data } = validationResult.data;
+    // Fetch armory with proper projection to avoid virtuals issue
+    const armory = await Armory.findById(armoryId).select('weapons ammunition equipment armoryName armoryCode');
+    const officer = await Officer.findById(officerId);
 
-  // Start a session per-request (after DB connection and auth)
-  const session = await mongoose.startSession();
+    if (!armory) {
+      return NextResponse.json({ error: 'Armory not found' }, { status: 404 });
+    }
+    
+    if (!officer) {
+      return NextResponse.json({ error: 'Officer not found' }, { status: 404 });
+    }
 
-  // retry loop for transient transaction errors
-  const MAX_RETRIES = 3;
-  let attempt = 0;
+    // Ensure arrays exist
+    if (!armory.weapons) armory.weapons = [];
+    if (!armory.ammunition) armory.ammunition = [];
+    if (!armory.equipment) armory.equipment = [];
 
-  try {
-    while (attempt < MAX_RETRIES) {
-      attempt += 1;
-      try {
-        const transactionOptions = {
-          readConcern: { level: 'local' },
-          writeConcern: { w: 'majority' }
-        };
+    // Prepare arrays for issued items
+    const weaponsIssued = [];
+    const ammunitionIssued = [];
+    const equipmentIssued = [];
 
-        let distributionDoc = null;
-
-        await session.withTransaction(async () => {
-          // Fetch armory and officer within the transaction (pass session)
-          // Note: Could use Promise.all but ensure each call uses the session
-          const [armory, officer] = await Promise.all([
-            Armory.findById(armoryId).session(session),
-            Officer.findById(officerId).session(session)
-          ]);
-
-          if (!armory) {
-            throw { status: 404, message: 'Armory not found' };
-          }
-          if (!officer) {
-            throw { status: 404, message: 'Officer not found' };
-          }
-
-          // Validate stock and prepare issued item snapshots
-          const weaponsIssued = [];
-          const ammunitionIssued = [];
-          const equipmentIssued = [];
-
-          // Weapons
-          for (const item of weapons) {
-            const weapon = armory.weapons.id(item.weaponId);
-            if (!weapon) {
-              throw { status: 400, message: `Weapon not found: ${item.weaponId}` };
-            }
-            if (weapon.quantity < item.quantity) {
-              throw {
-                status: 400,
-                message: `Insufficient stock for weapon: ${weapon.serialNumber}`,
-                available: weapon.quantity,
-                requested: item.quantity
-              };
-            }
-
-            weaponsIssued.push({
-              itemRef: weapon._id,
-              itemType: 'weapon',
-              itemSnapshot: weapon.toObject(),
-              quantity: item.quantity,
-              conditionAtIssue: weapon.condition
-            });
-
-            weapon.quantity -= item.quantity;
-          }
-
-          // Ammunition
-          for (const item of ammunition) {
-            const ammo = armory.ammunition.id(item.ammunitionId);
-            if (!ammo) {
-              throw { status: 400, message: `Ammunition not found: ${item.ammunitionId}` };
-            }
-            if (ammo.availableQuantity < item.quantity) {
-              throw {
-                status: 400,
-                message: `Insufficient stock for ammunition: ${ammo.caliber} - ${ammo.lotNumber}`,
-                available: ammo.availableQuantity,
-                requested: item.quantity
-              };
-            }
-
-            ammunitionIssued.push({
-              itemRef: ammo._id,
-              itemType: 'ammunition',
-              itemSnapshot: ammo.toObject(),
-              quantity: item.quantity,
-              conditionAtIssue: ammo.condition
-            });
-
-            ammo.availableQuantity -= item.quantity;
-          }
-
-          // Equipment
-          for (const item of equipment) {
-            const equip = armory.equipment.id(item.equipmentId);
-            if (!equip) {
-              throw { status: 400, message: `Equipment not found: ${item.equipmentId}` };
-            }
-            if (equip.availableQuantity < item.quantity) {
-              throw {
-                status: 400,
-                message: `Insufficient stock for equipment: ${equip.name}`,
-                available: equip.availableQuantity,
-                requested: item.quantity
-              };
-            }
-
-            equipmentIssued.push({
-              itemRef: equip._id,
-              itemType: 'equipment',
-              itemSnapshot: equip.toObject(),
-              quantity: item.quantity,
-              conditionAtIssue: equip.condition
-            });
-
-            equip.availableQuantity -= item.quantity;
-          }
-
-          // Build distribution record
-          const distributionNo = `DIS-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
-          const renewalDue = new Date();
-          renewalDue.setDate(renewalDue.getDate() + 30);
-
-          const dist = new Distribution({
-            distributionNo,
-            armory: armoryId,
-            officer: officerId,
-            issuedBy: user.id,
-            squadName: data.squadName,
-            dateIssued: new Date(),
-            renewalDue,
-            weaponsIssued,
-            ammunitionIssued,
-            equipmentIssued,
-            remarks: data.remarks,
-            createdBy: user.id
-          });
-
-          // Save distribution within session and update armory (also within session)
-          await dist.save({ session });
-          await armory.save({ session });
-
-          distributionDoc = dist; // keep reference for after transaction
-        }, transactionOptions);
-
-        // If we reach here, transaction committed successfully
-        // populate references for the response (outside transaction)
-        if (distributionDoc) {
-          await distributionDoc.populate('armory', 'armoryName armoryCode');
-          await distributionDoc.populate('officer', 'serviceNo name rank');
-          await distributionDoc.populate('issuedBy', 'name email');
-
-          return NextResponse.json(distributionDoc, { status: 201 });
-        }
-
-        // If transaction completed but no distribution (unexpected)
-        return NextResponse.json({ error: 'Transaction did not produce distribution' }, { status: 500 });
-
-      } catch (txnError) {
-        // Transaction-level errors: if it's a retryable/transient transaction error, retry
-        const isTransient = txnError && txnError.errorLabels && (
-          txnError.errorLabels.includes('TransientTransactionError') ||
-          txnError.errorLabels.includes('UnknownTransactionCommitResult')
+    // Validate and prepare weapons
+    for (const item of weapons) {
+      const weaponId = mongoose.Types.ObjectId.isValid(item.weaponId) 
+        ? new mongoose.Types.ObjectId(item.weaponId)
+        : item.weaponId;
+      
+      const weaponIndex = armory.weapons.findIndex(w => 
+        w._id && w._id.toString() === weaponId.toString()
+      );
+      
+      if (weaponIndex === -1) {
+        return NextResponse.json(
+          { error: `Weapon not found: ${item.weaponId}` },
+          { status: 400 }
         );
-
-        // If thrown by our code as {status, message}
-        if (txnError && txnError.status && txnError.message) {
-          // Non-transient application error: return immediately
-          console.error('POST /api/distributions application error inside transaction:', txnError);
-          return NextResponse.json({ error: txnError.message }, { status: txnError.status });
-        }
-
-        console.warn(`POST /api/distributions transaction attempt ${attempt} failed:`, txnError);
-
-        if (isTransient && attempt < MAX_RETRIES) {
-          // short backoff then retry
-          await new Promise((res) => setTimeout(res, 100 * attempt));
-          continue;
-        }
-
-        // Non-retryable or ran out of retries
-        throw txnError;
       }
-    } // end retry loop
+
+      const weapon = armory.weapons[weaponIndex];
+      const availableQuantity = weapon.availableQuantity !== undefined 
+        ? weapon.availableQuantity 
+        : weapon.quantity;
+      
+      if (availableQuantity < item.quantity) {
+        return NextResponse.json({
+          error: `Insufficient stock for weapon: ${weapon.serialNumber || weapon.weaponType}`,
+          available: availableQuantity,
+          requested: item.quantity
+        }, { status: 400 });
+      }
+
+      // Add to issued items
+      weaponsIssued.push({
+        itemRef: weapon._id,
+        itemType: 'weapon',
+        itemSnapshot: {
+          weaponType: weapon.weaponType,
+          serialNumber: weapon.serialNumber,
+          model: weapon.model || '',
+          caliber: weapon.caliber || '',
+          manufacturer: weapon.manufacturer || '',
+          condition: weapon.condition,
+          quantity: weapon.quantity
+        },
+        quantity: item.quantity,
+        conditionAtIssue: weapon.condition || 'serviceable'
+      });
+
+      // Update quantity in memory
+      if (weapon.availableQuantity !== undefined) {
+        armory.weapons[weaponIndex].availableQuantity -= item.quantity;
+      } else {
+        armory.weapons[weaponIndex].quantity -= item.quantity;
+      }
+    }
+
+    // Validate and prepare ammunition
+    for (const item of ammunition) {
+      const ammoId = mongoose.Types.ObjectId.isValid(item.ammunitionId)
+        ? new mongoose.Types.ObjectId(item.ammunitionId)
+        : item.ammunitionId;
+      
+      const ammoIndex = armory.ammunition.findIndex(a => 
+        a._id && a._id.toString() === ammoId.toString()
+      );
+      
+      if (ammoIndex === -1) {
+        return NextResponse.json(
+          { error: `Ammunition not found: ${item.ammunitionId}` },
+          { status: 400 }
+        );
+      }
+
+      const ammo = armory.ammunition[ammoIndex];
+      const availableQuantity = ammo.availableQuantity !== undefined 
+        ? ammo.availableQuantity 
+        : ammo.quantity;
+      
+      if (availableQuantity < item.quantity) {
+        return NextResponse.json({
+          error: `Insufficient stock for ammunition: ${ammo.caliber || 'Unknown'}`,
+          available: availableQuantity,
+          requested: item.quantity
+        }, { status: 400 });
+      }
+
+      ammunitionIssued.push({
+        itemRef: ammo._id,
+        itemType: 'ammunition',
+        itemSnapshot: {
+          caliber: ammo.caliber,
+          type: ammo.type,
+          lotNumber: ammo.lotNumber || '',
+          manufacturer: ammo.manufacturer || '',
+          expiryDate: ammo.expiryDate,
+          quantity: ammo.quantity
+        },
+        quantity: item.quantity,
+        conditionAtIssue: ammo.condition || 'good'
+      });
+
+      // Update quantity in memory
+      if (ammo.availableQuantity !== undefined) {
+        armory.ammunition[ammoIndex].availableQuantity -= item.quantity;
+      } else {
+        armory.ammunition[ammoIndex].quantity -= item.quantity;
+      }
+    }
+
+    // Validate and prepare equipment
+    for (const item of equipment) {
+      const equipId = mongoose.Types.ObjectId.isValid(item.equipmentId)
+        ? new mongoose.Types.ObjectId(item.equipmentId)
+        : item.equipmentId;
+      
+      const equipIndex = armory.equipment.findIndex(e => 
+        e._id && e._id.toString() === equipId.toString()
+      );
+      
+      if (equipIndex === -1) {
+        return NextResponse.json(
+          { error: `Equipment not found: ${item.equipmentId}` },
+          { status: 400 }
+        );
+      }
+
+      const equip = armory.equipment[equipIndex];
+      const availableQuantity = equip.availableQuantity !== undefined 
+        ? equip.availableQuantity 
+        : equip.quantity;
+      
+      if (availableQuantity < item.quantity) {
+        return NextResponse.json({
+          error: `Insufficient stock for equipment: ${equip.itemType || 'Unknown'}`,
+          available: availableQuantity,
+          requested: item.quantity
+        }, { status: 400 });
+      }
+
+      equipmentIssued.push({
+        itemRef: equip._id,
+        itemType: 'equipment',
+        itemSnapshot: {
+          itemType: equip.itemType,
+          size: equip.size || '',
+          serialNumber: equip.serialNumber || '',
+          manufacturer: equip.manufacturer || '',
+          condition: equip.condition,
+          quantity: equip.quantity
+        },
+        quantity: item.quantity,
+        conditionAtIssue: equip.condition || 'serviceable'
+      });
+
+      // Update quantity in memory
+      if (equip.availableQuantity !== undefined) {
+        armory.equipment[equipIndex].availableQuantity -= item.quantity;
+      } else {
+        armory.equipment[equipIndex].quantity -= item.quantity;
+      }
+    }
+
+    // Generate distribution number
+    const distributionNo = `DIS-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+
+    // Calculate renewal due date (30 days from now)
+    const renewalDue = new Date();
+    renewalDue.setDate(renewalDue.getDate() + 30);
+
+    // Create distribution record
+    const distribution = new Distribution({
+      distributionNo,
+      armory: armoryId,
+      officer: officerId,
+      issuedBy: user.id,
+      squadName: data.squadName,
+      dateIssued: new Date(),
+      renewalDue,
+      weaponsIssued,
+      ammunitionIssued,
+      equipmentIssued,
+      remarks: data.remarks,
+      createdBy: user.id
+    });
+
+    // Save both documents - if one fails, the other won't be saved
+    await distribution.save();
+    await armory.save();
+    return NextResponse.json(distribution, { status: 201 });
+
   } catch (error) {
-    // Ensure session is aborted (withTransaction already aborts on exceptions, but double-check)
-    try {
-      if (session.inTransaction()) {
-        await session.abortTransaction();
-      }
-    } catch (abortErr) {
-      console.error('Error aborting transaction after failure:', abortErr);
-    }
-
     console.error('POST /api/distributions error:', error);
-
-    // If our app threw a structured error object, return its status/message
-    if (error && error.status && error.message) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
+    
+    // Handle specific error types
+    if (error.name === 'ValidationError') {
+      return NextResponse.json(
+        { error: 'Validation error', details: error.errors },
+        { status: 400 }
+      );
     }
 
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  } finally {
-    // Always end the session
-    try {
-      session.endSession();
-    } catch (endErr) {
-      console.error('Error ending session:', endErr);
+    if (error.code === 11000) { // Duplicate key error
+      return NextResponse.json(
+        { error: 'Duplicate distribution number' },
+        { status: 400 }
+      );
     }
+
+    if (error.message && error.message.includes('Insufficient stock')) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: 'Internal server error', details: error.message },
+      { status: 500 }
+    );
   }
 }
 
