@@ -10,7 +10,7 @@ import mongoose from 'mongoose';
 export async function GET(request) {
   try {
     await connectDB();
-    const user = await authenticate(request);
+    const {user} = await authenticate(request);
     
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -98,7 +98,7 @@ export async function POST(request) {
   }
 
   // Authenticate user (after DB connection)
-  const user = await authenticate(request);
+  const {user} = await authenticate(request);
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -172,11 +172,11 @@ export async function POST(request) {
             if (!weapon) {
               throw { status: 400, message: `Weapon not found: ${item.weaponId}` };
             }
-            if (weapon.availableQuantity < item.quantity) {
+            if (weapon.quantity < item.quantity) {
               throw {
                 status: 400,
                 message: `Insufficient stock for weapon: ${weapon.serialNumber}`,
-                available: weapon.availableQuantity,
+                available: weapon.quantity,
                 requested: item.quantity
               };
             }
@@ -189,7 +189,7 @@ export async function POST(request) {
               conditionAtIssue: weapon.condition
             });
 
-            weapon.availableQuantity -= item.quantity;
+            weapon.quantity -= item.quantity;
           }
 
           // Ammunition

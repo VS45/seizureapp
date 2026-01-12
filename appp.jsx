@@ -37,15 +37,6 @@ export default function ManageArmoryInventoryPage() {
     equipment: true
   })
 
-  // State for dropdown data
-  const [weaponModels, setWeaponModels] = useState({})
-  const [ammunitionData, setAmmunitionData] = useState({ 
-    calibers: [], 
-    types: [],
-    ammunitionModels: []
-  })
-  const [equipmentModels, setEquipmentModels] = useState({})
-  
   // State for new items to be added
   const [newWeapons, setNewWeapons] = useState([])
   const [newAmmunition, setNewAmmunition] = useState([])
@@ -62,6 +53,8 @@ export default function ManageArmoryInventoryPage() {
       const userData = await response.json()
       setUser(userData.user)
 
+      // Check if user has permission to manage armory inventory
+      // Only admin and armourer can manage inventory
       const allowedRoles = ['admin', 'armourer']
       if (!allowedRoles.includes(userData.user.role)) {
         setError('You do not have permission to manage armory inventory. Only administrators and armourers can add inventory items.')
@@ -92,63 +85,13 @@ export default function ManageArmoryInventoryPage() {
         setArmory(data.armory)
       } else {
         console.error('Failed to fetch armory')
-        router.push('/armory/armories')
+        router.push('/armories')
       }
     } catch (error) {
       console.error('Error fetching armory:', error)
-      router.push('/armory/armories')
+      router.push('/armories')
     } finally {
       setLoading(false)
-    }
-  }
-
-  const fetchDropdownData = async () => {
-    try {
-      // Fetch weapon models
-      const weaponResponse = await fetch('/api/armory/weapon-models')
-      if (weaponResponse.ok) {
-        const weaponData = await weaponResponse.json()
-        setWeaponModels(weaponData.weaponModels||[])
-      }
-
-      // Fetch ammunition data
-      const ammoResponse = await fetch('/api/armory/ammunition-models')
-      if (ammoResponse.ok) {
-        const ammoData = await ammoResponse.json()
-        setAmmunitionData(ammoData.ammonitions||[])
-      }
-
-      // Fetch equipment models
-      const equipmentResponse = await fetch('/api/armory/equipment-models')
-      if (equipmentResponse.ok) {
-        const equipmentData = await equipmentResponse.json()
-        setEquipmentModels(equipmentData.equipmentModels)
-      }
-    } catch (error) {
-      console.error('Error fetching dropdown data:', error)
-    }
-  }
-
-  const fetchAvailableQuantity = async (itemType, params) => {
-    try {
-      const queryParams = new URLSearchParams({
-        armoryId,
-        itemType,
-        ...params
-      }).toString()
-
-      const response = await fetch(`/api/armory/available-quantity?${queryParams}`)
-      if (response.ok) {
-        const data = await response.json()
-        return {
-          availableQuantity: data.availableQuantity || 0,
-          existingItem: data.existingItem || null
-        }
-      }
-      return { availableQuantity: 0, existingItem: null }
-    } catch (error) {
-      console.error('Error fetching available quantity:', error)
-      return { availableQuantity: 0, existingItem: null }
     }
   }
 
@@ -159,7 +102,6 @@ export default function ManageArmoryInventoryPage() {
   useEffect(() => {
     if (user && armoryId) {
       fetchArmory()
-      fetchDropdownData()
     }
   }, [user, armoryId])
 
@@ -175,50 +117,26 @@ export default function ManageArmoryInventoryPage() {
     const newWeapon = {
       weaponType: '',
       serialNumber: '',
-      manufacturer: '',
-      quantity: 1,
+      model: '',
+      caliber: '',
       condition: 'serviceable',
-      acquisitionDate: new Date().toISOString().split('T')[0],
-      notes: ''
+      status: 'available',
+      quantity: 1,
+      availableQuantity: 1,
+      location: '',
+      notes: '',
+      lastMaintenance: '',
+      nextMaintenance: ''
     }
     setNewWeapons(prev => [...prev, newWeapon])
   }
 
-  const updateNewWeapon = async (index, field, value) => {
-    const updatedWeapons = [...newWeapons]
-    updatedWeapons[index] = { ...updatedWeapons[index], [field]: value }
-    setNewWeapons(updatedWeapons)
-
-    // If weapon type or manufacturer changes, fetch available quantity
-    if (field === 'weaponType' || field === 'manufacturer') {
-      const weapon = updatedWeapons[index]
-      if (weapon.weaponType && weapon.manufacturer) {
-        const { availableQuantity, existingItem } = await fetchAvailableQuantity('weapon', {
-          weaponType: weapon.weaponType,
-          weaponModel: weapon.manufacturer
-        })
-        
-        updatedWeapons[index] = {
-          ...weapon,
-          existingAvailable: availableQuantity,
-          availableQuantity: weapon.quantity + availableQuantity,
-          existingItem: existingItem
-        }
-        setNewWeapons([...updatedWeapons])
-      }
-    }
-
-    // Update available quantity when quantity changes
-    if (field === 'quantity') {
-      const weapon = updatedWeapons[index]
-      const existingAvailable = weapon.existingAvailable || 0
-      updatedWeapons[index] = {
-        ...weapon,
-        quantity: parseInt(value) || 1,
-        availableQuantity: (parseInt(value) || 1) + existingAvailable
-      }
-      setNewWeapons([...updatedWeapons])
-    }
+  const updateNewWeapon = (index, field, value) => {
+    setNewWeapons(prev => 
+      prev.map((weapon, i) => 
+        i === index ? { ...weapon, [field]: value } : weapon
+      )
+    )
   }
 
   const removeNewWeapon = (index) => {
@@ -230,50 +148,24 @@ export default function ManageArmoryInventoryPage() {
     const newAmmo = {
       caliber: '',
       type: '',
-      quantity: 0,
-      unit: 'rounds',
       lotNumber: '',
-      manufactureDate: new Date().toISOString().split('T')[0],
-      expiryDate: ''
+      quantity: 0,
+      availableQuantity: 0,
+      unit: 'rounds',
+      expiryDate: '',
+      condition: 'good',
+      location: '',
+      notes: ''
     }
     setNewAmmunition(prev => [...prev, newAmmo])
   }
 
-  const updateNewAmmunition = async (index, field, value) => {
-    const updatedAmmunition = [...newAmmunition]
-    updatedAmmunition[index] = { ...updatedAmmunition[index], [field]: value }
-    setNewAmmunition(updatedAmmunition)
-
-    // If caliber or type changes, fetch available quantity
-    if (field === 'caliber' || field === 'type') {
-      const ammo = updatedAmmunition[index]
-      if (ammo.caliber && ammo.type) {
-        const { availableQuantity, existingItem } = await fetchAvailableQuantity('ammunition', {
-          caliber: ammo.caliber,
-          ammoType: ammo.type
-        })
-        
-        updatedAmmunition[index] = {
-          ...ammo,
-          existingAvailable: availableQuantity,
-          availableQuantity: ammo.quantity + availableQuantity,
-          existingItem: existingItem
-        }
-        setNewAmmunition([...updatedAmmunition])
-      }
-    }
-
-    // Update available quantity when quantity changes
-    if (field === 'quantity') {
-      const ammo = updatedAmmunition[index]
-      const existingAvailable = ammo.existingAvailable || 0
-      updatedAmmunition[index] = {
-        ...ammo,
-        quantity: parseInt(value) || 0,
-        availableQuantity: (parseInt(value) || 0) + existingAvailable
-      }
-      setNewAmmunition([...updatedAmmunition])
-    }
+  const updateNewAmmunition = (index, field, value) => {
+    setNewAmmunition(prev => 
+      prev.map((ammo, i) => 
+        i === index ? { ...ammo, [field]: value } : ammo
+      )
+    )
   }
 
   const removeNewAmmunition = (index) => {
@@ -283,51 +175,25 @@ export default function ManageArmoryInventoryPage() {
   // Equipment Management
   const addNewEquipment = () => {
     const newEquipment = {
-      itemType: '',
-      size: '',
-      quantity: 1,
-      condition: 'serviceable',
+      name: '',
+      type: '',
       serialNumber: '',
-      certificationDate: new Date().toISOString().split('T')[0],
-      expiryDate: ''
+      quantity: 1,
+      availableQuantity: 1,
+      condition: 'serviceable',
+      status: 'available',
+      location: '',
+      notes: ''
     }
     setNewEquipment(prev => [...prev, newEquipment])
   }
 
-  const updateNewEquipment = async (index, field, value) => {
-    const updatedEquipment = [...newEquipment]
-    updatedEquipment[index] = { ...updatedEquipment[index], [field]: value }
-    setNewEquipment(updatedEquipment)
-
-    // If equipment type changes, fetch available quantity
-    if (field === 'itemType') {
-      const equip = updatedEquipment[index]
-      if (equip.itemType) {
-        const { availableQuantity, existingItem } = await fetchAvailableQuantity('equipment', {
-          equipmentType: equip.itemType
-        })
-        
-        updatedEquipment[index] = {
-          ...equip,
-          existingAvailable: availableQuantity,
-          availableQuantity: equip.quantity + availableQuantity,
-          existingItem: existingItem
-        }
-        setNewEquipment([...updatedEquipment])
-      }
-    }
-
-    // Update available quantity when quantity changes
-    if (field === 'quantity') {
-      const equip = updatedEquipment[index]
-      const existingAvailable = equip.existingAvailable || 0
-      updatedEquipment[index] = {
-        ...equip,
-        quantity: parseInt(value) || 1,
-        availableQuantity: (parseInt(value) || 1) + existingAvailable
-      }
-      setNewEquipment([...updatedEquipment])
-    }
+  const updateNewEquipment = (index, field, value) => {
+    setNewEquipment(prev => 
+      prev.map((equip, i) => 
+        i === index ? { ...equip, [field]: value } : equip
+      )
+    )
   }
 
   const removeNewEquipment = (index) => {
@@ -337,15 +203,16 @@ export default function ManageArmoryInventoryPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
+    // Double-check user has permission
     if (user && !['admin', 'armourer'].includes(user.role)) {
       alert('You do not have permission to manage inventory.')
       return
     }
 
     // Validate required fields
-    const hasInvalidWeapon = newWeapons.some(weapon => !weapon.weaponType || !weapon.serialNumber || !weapon.manufacturer || weapon.quantity <= 0)
+    const hasInvalidWeapon = newWeapons.some(weapon => !weapon.weaponType || !weapon.serialNumber)
     const hasInvalidAmmo = newAmmunition.some(ammo => !ammo.caliber || !ammo.type || ammo.quantity <= 0)
-    const hasInvalidEquipment = newEquipment.some(equip => !equip.itemType || equip.quantity <= 0)
+    const hasInvalidEquipment = newEquipment.some(equip => !equip.name || !equip.type || equip.quantity <= 0)
 
     if (hasInvalidWeapon || hasInvalidAmmo || hasInvalidEquipment) {
       alert('Please fill in all required fields with valid values')
@@ -355,36 +222,12 @@ export default function ManageArmoryInventoryPage() {
     setSaving(true)
     try {
       const updateData = {
-        weapons: newWeapons.map(w => ({
-          weaponType: w.weaponType,
-          serialNumber: w.serialNumber,
-          manufacturer: w.manufacturer,
-          quantity: w.quantity,
-          condition: w.condition,
-          acquisitionDate: w.acquisitionDate,
-          notes: w.notes
-        })),
-        ammunition: newAmmunition.map(a => ({
-          caliber: a.caliber,
-          type: a.type,
-          quantity: a.quantity,
-          unit: a.unit,
-          lotNumber: a.lotNumber,
-          manufactureDate: a.manufactureDate,
-          expiryDate: a.expiryDate
-        })),
-        equipment: newEquipment.map(e => ({
-          itemType: e.itemType,
-          size: e.size,
-          quantity: e.quantity,
-          condition: e.condition,
-          serialNumber: e.serialNumber,
-          certificationDate: e.certificationDate,
-          expiryDate: e.expiryDate
-        }))
+        weapons: newWeapons,
+        ammunition: newAmmunition,
+        equipment: newEquipment
       }
 
-      const response = await fetch(`/api/armories/${armoryId}`, {
+      const response = await fetch(`/api/armory/armories/${armoryId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updateData)
@@ -417,6 +260,7 @@ export default function ManageArmoryInventoryPage() {
     )
   }
 
+  // Show error state for unauthorized users
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -431,6 +275,7 @@ export default function ManageArmoryInventoryPage() {
     )
   }
 
+  // Only render content if user is authenticated
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -461,7 +306,7 @@ export default function ManageArmoryInventoryPage() {
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Armory Not Found</h2>
         <p className="text-gray-600 mb-6">The armory you're looking for doesn't exist.</p>
         <button
-          onClick={() => router.push('/armories')}
+          onClick={() => router.push('/armory/armories')}
           className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
         >
           Back to Armories
@@ -512,14 +357,14 @@ export default function ManageArmoryInventoryPage() {
             <Shield className="w-8 h-8 text-green-600" />
             <div>
               <p className="text-sm font-medium text-gray-600">Weapons</p>
-              <p className="text-2xl font-bold text-gray-900">{armory.totalWeapons || 0}</p>
+              <p className="text-2xl font-bold text-gray-900">{armory.weapons?.length || 0}</p>
             </div>
           </div>
           <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
             <Crosshair className="w-8 h-8 text-blue-600" />
             <div>
               <p className="text-sm font-medium text-gray-600">Ammunition</p>
-              <p className="text-2xl font-bold text-gray-900">{armory.totalAmmunition || 0}</p>
+              <p className="text-2xl font-bold text-gray-900">{armory.ammunition?.length || 0}</p>
             </div>
           </div>
           <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg">
@@ -592,37 +437,14 @@ export default function ManageArmoryInventoryPage() {
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             Weapon Type *
                           </label>
-                          <select
+                          <input
+                            type="text"
                             value={weapon.weaponType}
                             onChange={(e) => updateNewWeapon(index, 'weaponType', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                            placeholder="e.g., Rifle, Pistol"
                             required
-                          >
-                            <option value="">Select Weapon Type</option>
-                            {Object.keys(weaponModels).map(type => (
-                              <option key={type} value={type}>{type}</option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Model/Manufacturer *
-                          </label>
-                          <select
-                            value={weapon.manufacturer}
-                            onChange={(e) => updateNewWeapon(index, 'manufacturer', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                            required
-                            disabled={!weapon.weaponType}
-                          >
-                            <option value="">Select Model</option>
-                            {weapon.weaponType && weaponModels[weapon.weaponType]?.map(model => (
-                              <option key={model.id} value={model.manufacturer}>
-                                {model.manufacturer} ({model.caliber})
-                              </option>
-                            ))}
-                          </select>
+                          />
                         </div>
 
                         <div>
@@ -640,34 +462,24 @@ export default function ManageArmoryInventoryPage() {
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Existing Available</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
                           <input
                             type="text"
-                            value={weapon.existingAvailable || 0}
-                            readOnly
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Quantity to Add *</label>
-                          <input
-                            type="number"
-                            value={weapon.quantity}
-                            onChange={(e) => updateNewWeapon(index, 'quantity', e.target.value)}
+                            value={weapon.model}
+                            onChange={(e) => updateNewWeapon(index, 'model', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                            min="1"
-                            required
+                            placeholder="Model name/number"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Total Available Quantity</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Caliber</label>
                           <input
                             type="text"
-                            value={weapon.availableQuantity || 0}
-                            readOnly
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-green-50 font-semibold"
+                            value={weapon.caliber}
+                            onChange={(e) => updateNewWeapon(index, 'caliber', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                            placeholder="e.g., 5.56mm, 9mm"
                           />
                         </div>
 
@@ -680,25 +492,51 @@ export default function ManageArmoryInventoryPage() {
                           >
                             <option value="serviceable">Serviceable</option>
                             <option value="unserviceable">Unserviceable</option>
-                            <option value="under_maintenance">Under Maintenance</option>
-                            <option value="missing">Missing</option>
+                            <option value="maintenance">Needs Maintenance</option>
                           </select>
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Acquisition Date</label>
-                          <input
-                            type="date"
-                            value={weapon.acquisitionDate || ''}
-                            onChange={(e) => updateNewWeapon(index, 'acquisitionDate', e.target.value)}
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                          <select
+                            value={weapon.status}
+                            onChange={(e) => updateNewWeapon(index, 'status', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                          >
+                            <option value="available">Available</option>
+                            <option value="reserved">Reserved</option>
+                            <option value="maintenance">In Maintenance</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Quantity *</label>
+                          <input
+                            type="number"
+                            value={weapon.quantity}
+                            onChange={(e) => updateNewWeapon(index, 'quantity', parseInt(e.target.value) || 1)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                            min="1"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Available Quantity</label>
+                          <input
+                            type="number"
+                            value={weapon.availableQuantity}
+                            onChange={(e) => updateNewWeapon(index, 'availableQuantity', parseInt(e.target.value) || 0)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                            min="0"
+                            max={weapon.quantity}
                           />
                         </div>
 
                         <div className="md:col-span-3">
                           <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
                           <textarea
-                            value={weapon.notes || ''}
+                            value={weapon.notes}
                             onChange={(e) => updateNewWeapon(index, 'notes', e.target.value)}
                             rows={2}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
@@ -773,41 +611,35 @@ export default function ManageArmoryInventoryPage() {
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             Caliber *
                           </label>
-                          <select
+                          <input
+                            type="text"
                             value={ammo.caliber}
                             onChange={(e) => updateNewAmmunition(index, 'caliber', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="e.g., 5.56mm, 9mm"
                             required
-                          >
-                            <option value="">Select Caliber</option>
-                            {ammunitionData.calibers.map(caliber => (
-                              <option key={caliber} value={caliber}>{caliber}</option>
-                            ))}
-                          </select>
+                          />
                         </div>
 
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             Type *
                           </label>
-                          <select
+                          <input
+                            type="text"
                             value={ammo.type}
                             onChange={(e) => updateNewAmmunition(index, 'type', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="e.g., Ball, Tracer, Hollow Point"
                             required
-                          >
-                            <option value="">Select Type</option>
-                            {ammunitionData.types.map(type => (
-                              <option key={type} value={type}>{type}</option>
-                            ))}
-                          </select>
+                          />
                         </div>
 
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Lot Number</label>
                           <input
                             type="text"
-                            value={ammo.lotNumber || ''}
+                            value={ammo.lotNumber}
                             onChange={(e) => updateNewAmmunition(index, 'lotNumber', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                             placeholder="Manufacturer lot number"
@@ -815,23 +647,13 @@ export default function ManageArmoryInventoryPage() {
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Existing Available</label>
-                          <input
-                            type="text"
-                            value={ammo.existingAvailable || 0}
-                            readOnly
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                          />
-                        </div>
-
-                        <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Quantity to Add *
+                            Quantity *
                           </label>
                           <input
                             type="number"
                             value={ammo.quantity}
-                            onChange={(e) => updateNewAmmunition(index, 'quantity', e.target.value)}
+                            onChange={(e) => updateNewAmmunition(index, 'quantity', parseInt(e.target.value) || 0)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                             min="1"
                             required
@@ -839,12 +661,14 @@ export default function ManageArmoryInventoryPage() {
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Total Available Quantity</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Available Quantity</label>
                           <input
-                            type="text"
-                            value={ammo.availableQuantity || 0}
-                            readOnly
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-blue-50 font-semibold"
+                            type="number"
+                            value={ammo.availableQuantity}
+                            onChange={(e) => updateNewAmmunition(index, 'availableQuantity', parseInt(e.target.value) || 0)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            min="0"
+                            max={ammo.quantity}
                           />
                         </div>
 
@@ -856,27 +680,43 @@ export default function ManageArmoryInventoryPage() {
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                           >
                             <option value="rounds">Rounds</option>
-                           
+                            <option value="boxes">Boxes</option>
+                            <option value="cases">Cases</option>
                           </select>
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Manufacture Date</label>
-                          <input
-                            type="date"
-                            value={ammo.manufactureDate || ''}
-                            onChange={(e) => updateNewAmmunition(index, 'manufactureDate', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                          />
                         </div>
 
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date</label>
                           <input
                             type="date"
-                            value={ammo.expiryDate || ''}
+                            value={ammo.expiryDate}
                             onChange={(e) => updateNewAmmunition(index, 'expiryDate', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Condition</label>
+                          <select
+                            value={ammo.condition}
+                            onChange={(e) => updateNewAmmunition(index, 'condition', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="good">Good</option>
+                            <option value="fair">Fair</option>
+                            <option value="poor">Poor</option>
+                            <option value="expired">Expired</option>
+                          </select>
+                        </div>
+
+                        <div className="md:col-span-3">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                          <textarea
+                            value={ammo.notes}
+                            onChange={(e) => updateNewAmmunition(index, 'notes', e.target.value)}
+                            rows={2}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="Additional notes or remarks"
                           />
                         </div>
                       </div>
@@ -945,35 +785,29 @@ export default function ManageArmoryInventoryPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Equipment Type *
+                            Name *
                           </label>
-                          <select
-                            value={equip.itemType}
-                            onChange={(e) => updateNewEquipment(index, 'itemType', e.target.value)}
+                          <input
+                            type="text"
+                            value={equip.name}
+                            onChange={(e) => updateNewEquipment(index, 'name', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                            placeholder="e.g., Helmet, Vest, Radio"
                             required
-                          >
-                            <option value="">Select Equipment Type</option>
-                            {Object.keys(equipmentModels).map(category => (
-                              <optgroup key={category} label={category}>
-                                {equipmentModels[category]?.map(item => (
-                                  <option key={item.id} value={item.itemType}>
-                                    {item.itemType}
-                                  </option>
-                                ))}
-                              </optgroup>
-                            ))}
-                          </select>
+                          />
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Size</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Type *
+                          </label>
                           <input
                             type="text"
-                            value={equip.size || ''}
-                            onChange={(e) => updateNewEquipment(index, 'size', e.target.value)}
+                            value={equip.type}
+                            onChange={(e) => updateNewEquipment(index, 'type', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                            placeholder="e.g., M, L, XL"
+                            placeholder="e.g., Protective Gear, Communication"
+                            required
                           />
                         </div>
 
@@ -981,7 +815,7 @@ export default function ManageArmoryInventoryPage() {
                           <label className="block text-sm font-medium text-gray-700 mb-1">Serial Number</label>
                           <input
                             type="text"
-                            value={equip.serialNumber || ''}
+                            value={equip.serialNumber}
                             onChange={(e) => updateNewEquipment(index, 'serialNumber', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                             placeholder="Unique serial number"
@@ -989,23 +823,13 @@ export default function ManageArmoryInventoryPage() {
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Existing Available</label>
-                          <input
-                            type="text"
-                            value={equip.existingAvailable || 0}
-                            readOnly
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                          />
-                        </div>
-
-                        <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Quantity to Add *
+                            Quantity *
                           </label>
                           <input
                             type="number"
                             value={equip.quantity}
-                            onChange={(e) => updateNewEquipment(index, 'quantity', e.target.value)}
+                            onChange={(e) => updateNewEquipment(index, 'quantity', parseInt(e.target.value) || 1)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                             min="1"
                             required
@@ -1013,12 +837,14 @@ export default function ManageArmoryInventoryPage() {
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Total Available Quantity</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Available Quantity</label>
                           <input
-                            type="text"
-                            value={equip.availableQuantity || 0}
-                            readOnly
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-purple-50 font-semibold"
+                            type="number"
+                            value={equip.availableQuantity}
+                            onChange={(e) => updateNewEquipment(index, 'availableQuantity', parseInt(e.target.value) || 0)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                            min="0"
+                            max={equip.quantity}
                           />
                         </div>
 
@@ -1031,27 +857,31 @@ export default function ManageArmoryInventoryPage() {
                           >
                             <option value="serviceable">Serviceable</option>
                             <option value="unserviceable">Unserviceable</option>
-                            <option value="under_maintenance">Under Maintenance</option>
+                            <option value="maintenance">Needs Maintenance</option>
                           </select>
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Certification Date</label>
-                          <input
-                            type="date"
-                            value={equip.certificationDate || ''}
-                            onChange={(e) => updateNewEquipment(index, 'certificationDate', e.target.value)}
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                          <select
+                            value={equip.status}
+                            onChange={(e) => updateNewEquipment(index, 'status', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                          />
+                          >
+                            <option value="available">Available</option>
+                            <option value="issued">Issued</option>
+                            <option value="maintenance">In Maintenance</option>
+                          </select>
                         </div>
 
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date</label>
-                          <input
-                            type="date"
-                            value={equip.expiryDate || ''}
-                            onChange={(e) => updateNewEquipment(index, 'expiryDate', e.target.value)}
+                        <div className="md:col-span-3">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                          <textarea
+                            value={equip.notes}
+                            onChange={(e) => updateNewEquipment(index, 'notes', e.target.value)}
+                            rows={2}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                            placeholder="Additional notes or remarks"
                           />
                         </div>
                       </div>

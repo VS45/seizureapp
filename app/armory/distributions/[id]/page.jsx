@@ -53,12 +53,13 @@ export default function DistributionDetailPage() {
     try {
       setLoading(true);
       const response = await fetch(`/api/armory/distributions/${distributionId}`);
+      console.log("Fetch Distribution Response: ", response);
       if (response.ok) {
         const data = await response.json();
         setDistribution(data.distribution || data);
       } else {
         console.error('Failed to fetch distribution');
-        router.push('/armory/distributions');
+        //router.push('/armory/distributions');
       }
     } catch (error) {
       console.error('Error fetching distribution:', error);
@@ -266,7 +267,7 @@ export default function DistributionDetailPage() {
       <div className="max-w-6xl mx-auto space-y-6 p-4">
         <div className="flex items-center space-x-4">
           <button
-            onClick={() => router.push('/distributions')}
+            onClick={() => router.push('/armory/distributions')}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />

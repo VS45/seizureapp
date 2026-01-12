@@ -90,6 +90,7 @@ export default function CreateDistributionPage() {
       if (response.ok) {
         const data = await response.json();
         setSelectedArmory(data.armory);
+        console.log('Selected Armory:', data.armory);
         setFormData(prev => ({ ...prev, armoryId }));
         setStep(2);
       }
@@ -512,7 +513,7 @@ export default function CreateDistributionPage() {
                     <h4 className="text-lg font-medium text-gray-900 mb-2">No Weapons Available</h4>
                     <p className="text-gray-500">This armory doesn't have any weapons.</p>
                   </div>
-                ) : selectedArmory.weapons.filter(w => w.availableQuantity > 0).length === 0 ? (
+                ) : selectedArmory.weapons.filter(w => w.quantity > 0).length === 0 ? (
                   <div className="text-center py-8 border rounded-lg">
                     <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <h4 className="text-lg font-medium text-gray-900 mb-2">All Weapons Issued</h4>
@@ -520,9 +521,9 @@ export default function CreateDistributionPage() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {selectedArmory.weapons.filter(w => w.availableQuantity > 0).map((weapon) => (
+                    {selectedArmory.weapons.filter(w => w.quantity > 0).map((weapon) => (
                       <div key={weapon._id} className="border rounded-lg p-4 hover:border-blue-500 transition-colors">
-                        <div className="flex justify-between items-start mb-3">
+                        <div className="flex justify-betweeGn items-start mb-3">
                           <div>
                             <h4 className="font-medium text-gray-900">{weapon.weaponType}</h4>
                             <p className="text-sm text-gray-600">SN: {weapon.serialNumber}</p>

@@ -10,7 +10,7 @@ export async function GET(request, { params }) {
   try {
     await connectDB();
 
-    const user = await authenticate(request);
+    const {user} = await authenticate(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -62,7 +62,7 @@ export async function PUT(request, { params }) {
     await session.startTransaction();
     await connectDB();
 
-    const user = await authenticate(request);
+    const {user} = await authenticate(request);
     
     if (!user) {
       await session.abortTransaction();
@@ -199,14 +199,6 @@ export async function PUT(request, { params }) {
     await distribution.save({ session });
     await session.commitTransaction();
 
-    // Repopulate the updated distribution
-    await distribution.populate('armory', 'armoryName armoryCode location unit');
-    await distribution.populate('officer', 'serviceNo name rank unit');
-    await distribution.populate('issuedBy', 'name email');
-    await distribution.populate('returnedBy', 'name email');
-    await distribution.populate('createdBy', 'name email');
-    await distribution.populate('renewalHistory.renewedBy', 'name email');
-
     return NextResponse.json({
       success: true,
       distribution,
@@ -237,7 +229,7 @@ export async function DELETE(request, { params }) {
   try {
     await connectDB();
 
-    const user = await authenticate(request);
+    const {user} = await authenticate(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

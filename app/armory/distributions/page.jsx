@@ -83,6 +83,7 @@ export default function DistributionsPage() {
     try {
       setLoading(true)
       const response = await fetch('/api/armory/distributions')
+      console.log("Fetch Distributions Response: ", response)
       if (response.ok) {
         const data = await response.json()
         console.log("Distributions Data: ", data.distributions)

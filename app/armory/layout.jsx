@@ -19,8 +19,8 @@ import {
   Bell,
   Plus,
   Package,
-  Home,
-  Archive,
+  Crosshair,
+  Wrench,
   BarChart2,
   UserPlus,
   FiShield,
@@ -38,56 +38,73 @@ export default function ArmoryLayout({ children }) {
   const router = useRouter()
   const pathname = usePathname()
 
-  const navItems = [
-    { 
-      name: 'Dashboard', 
-      href: '/dashboard', 
-      icon: <LayoutDashboard size={20} />,
-      roles: ['admin', 'armourer', 'officer']
-    },
-    {
-      name: 'Armory Management',
-      icon: <Warehouse size={18} />,
-      roles: ['admin', 'armourer'],
-      subItems: [
-        { name: 'All Armories', href: '/armory/armories', icon: <Warehouse size={20} /> },
-        { name: 'Create New Armory', href: '/armory/armories/create', icon: <Plus size={20} /> },
-        { name: 'Add Weapons', href: '/armory/armories/weapons/create', icon: <Plus size={20} /> },
-        { name: 'Manage Inventory', href: '/armory/armories/manage-inventory', icon: <Package size={20} /> },
-      ]
-    },
-    { 
-      name: 'Officers', 
-      href: '/armory/officers', 
-      icon: <Users size={20} />,
-      roles: ['admin', 'armourer', 'officer']
-    },
-    { 
-      name: 'Patrol Teams', 
-      href: '/armory/patrols', 
-      icon: <Shield size={20} />,
-      roles: ['admin', 'armourer']
-    },
-    { 
-      name: 'Distributions', 
-      href: '/armory/distributions', 
-      icon: <FileText size={20} />,
-      roles: ['admin', 'armourer', 'officer']
-    },
-    { 
-      name: 'Offices', 
-      href: '/armory/offices', 
-      icon: <Building size={20} />,
-      roles: ['admin']
-    },
-    { 
-      name: 'Reports', 
-      href: '/armory/reports', 
-      icon: <FileText size={20} />,
-      roles: ['admin', 'armourer']
-    },
-  ]
-
+ const navItems = [
+  { 
+    name: 'Dashboard', 
+    href: '/dashboard', 
+    icon: <LayoutDashboard size={20} />,
+    roles: ['admin', 'armourer', 'officer']
+  },
+  {
+    name: 'Armory Management',
+    icon: <Warehouse size={18} />,
+    roles: ['admin', 'armourer'],
+    subItems: [
+      { name: 'All Armories', href: '/armory/armories', icon: <Warehouse size={20} /> },
+      { name: 'Create New Armory', href: '/armory/armories/create', icon: <Plus size={20} /> },
+      { name: 'Add Weapons', href: '/armory/armories/weapons/create', icon: <Plus size={20} /> },
+      { name: 'Manage Inventory', href: '/armory/armories/manage-inventory', icon: <Package size={20} /> },
+    ]
+  },
+  { 
+    name: 'Officers', 
+    href: '/armory/officers', 
+    icon: <Users size={20} />,
+    roles: ['admin', 'armourer', 'officer']
+  },
+  { 
+    name: 'Patrol Teams', 
+    href: '/armory/patrols', 
+    icon: <Shield size={20} />,
+    roles: ['admin', 'armourer']
+  },
+  { 
+    name: 'Distributions', 
+    href: '/armory/distributions', 
+    icon: <FileText size={20} />,
+    roles: ['admin', 'armourer', 'officer']
+  },
+  { 
+    name: 'Offices', 
+    href: '/armory/offices', 
+    icon: <Building size={20} />,
+    roles: ['admin']
+  },
+  { 
+    name: 'Reports', 
+    href: '/armory/reports', 
+    icon: <FileText size={20} />,
+    roles: ['admin', 'armourer']
+  },
+  {
+    name: 'Weapon Models',
+    href: '/armory/weapon-models',
+    icon: <Shield size={20} />,
+    roles: ['admin', 'armourer']
+  },
+  {
+    name: 'Ammunition Models',
+    href: '/armory/ammunition-models',
+    icon: <Crosshair size={20} />,
+    roles: ['admin', 'armourer']
+  },
+  {
+    name: 'Equipment Models',
+    href: '/armory/equipment-models',
+    icon: <Wrench size={20} />,
+    roles: ['admin', 'armourer']
+  },
+]
   const fetchUserData = async () => {
     try {
       const response = await fetch('/api/auth/me');

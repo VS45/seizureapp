@@ -55,8 +55,6 @@ export async function GET(request) {
 
     const [armories, total] = await Promise.all([
       Armory.find(query)
-        .populate('office', 'name code location')
-        .populate('createdBy', 'name email')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),

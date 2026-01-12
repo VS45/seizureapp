@@ -6,6 +6,7 @@ const weaponSchema = new Schema({
   weaponType: { type: String, required: true }, // AK-47, G3, Pistol, etc.
   serialNumber: { type: String, required: true, unique: true },
   quantity: { type: Number, required: true, default: 1 },
+  /* availableQuantity: { type: Number, required: true, default: 1 }, */
   condition: { 
     type: String, 
     required: true,
@@ -140,9 +141,7 @@ const armorySchema = new Schema({
   }]
 
 }, { 
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  timestamps: true
 });
 
 // Virtual for total weapon count

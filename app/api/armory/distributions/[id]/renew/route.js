@@ -6,7 +6,7 @@ import Distribution from '@/models/Distribution';
 export async function POST(request, { params }) {
   try {
     await connectDB();
-    const user = await authenticate(request);
+    const {user} = await authenticate(request);
     
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -48,10 +48,6 @@ export async function POST(request, { params }) {
     distribution.renewalDue = new Date(nextRenewalDate);
 
     await distribution.save();
-
-    await distribution.populate('renewalHistory.renewedBy', 'name email');
-    await distribution.populate('armory', 'armoryName armoryCode');
-    await distribution.populate('officer', 'serviceNo name rank');
 
     return NextResponse.json({
       success: true,
